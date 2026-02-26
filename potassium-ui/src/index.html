@@ -483,8 +483,11 @@ let portStatusCache = {};   // port => true/false
 // TAURI
 // ══════════════════════════════
 function tauriInvoke(cmd, args) {
-    const fn = window.__TAURI__?.core?.invoke ?? window.__TAURI__?.tauri?.invoke;
-    if (!fn) return Promise.reject('Tauri unavailable');
+    const fn = window.__TAURI__?.core?.invoke
+            ?? window.__TAURI__?.tauri?.invoke
+            ?? window.__TAURI__?.invoke;
+    if (!fn) return Promise.reject('Tauri not available — check window.__TAURI__');
+    console.log('[Tauri invoke]', cmd, JSON.stringify(args ?? {}));
     return fn(cmd, args ?? {});
 }
 
@@ -906,21 +909,30 @@ function init() {
         const code = monacoEditor.getValue();
         if (!code.trim()) { modal('Editor is empty.'); return; }
 
-        // ALL = broadcast to every port; otherwise use connected port or fallback to selected
         const port = executeTarget === 'ALL'
             ? 'ALL'
             : (connectedPort || selectedPort || '8392');
 
+        // Disable button while executing
+        const btn = $('btn-execute');
+        btn.disabled = true;
+        const origHTML = btn.innerHTML;
+        btn.innerHTML = origHTML.replace('Execute', 'Running...');
+
         try {
             const result = await tauriInvoke('OpiumwareExecution', { code, port });
-            modal(result);
-            // Auto-update connected port from success message if not already set
-            if (result.toLowerCase().includes('successfully connected')) {
+            console.log('[Execute] result:', result);
+            modal(result || 'Executed.');
+            if (result && result.toLowerCase().includes('successfully')) {
                 const m = result.match(/port[: ]+(\d+)/i);
                 if (m && !connectedPort) setConnectedPort(m[1]);
             }
         } catch(e) {
-            modal('Execute failed: ' + String(e));
+            console.error('[Execute] error:', e);
+            modal('Execute error: ' + String(e));
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origHTML;
         }
     };
 

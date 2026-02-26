@@ -71,7 +71,8 @@ async fn OpiumwareExecution(code: String, port: String) -> String {
 
     for p in &ports_to_check {
         let server_address = format!("127.0.0.1:{}", p);
-        match TcpStream::connect(&server_address) {
+        let addr: std::net::SocketAddr = server_address.parse().unwrap();
+        match TcpStream::connect_timeout(&addr, Duration::from_millis(800)) {
             Ok(mut stream) => {
                 println!("Successfully connected to Opiumware on port: {}", p);
                 if code != "NULL" {
