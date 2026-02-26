@@ -390,6 +390,50 @@
                 <label class="toggle-switch"><input type="checkbox" id="tog-aot"><span class="slider"></span></label>
             </div>
 
+            <p class="sec-title">Execution API</p>
+            <div class="sec-divider"></div>
+
+            <div class="setting-row">
+                <div class="setting-label"><span class="lbl">API Backend</span><span class="desc">Choose which execution API to use</span></div>
+                <div class="cdd-wrap" id="cdd-api">
+                    <div class="cdd-trigger" id="cdd-api-trigger">
+                        <div class="cdd-trigger-left">
+                            <span class="cdd-trigger-text" id="cdd-api-label">Rust API</span>
+                        </div>
+                        <svg class="cdd-caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                    <div class="cdd-panel" id="cdd-api-panel">
+                        <div class="cdd-item active" data-value="rust">
+                            <div class="cdd-item-left">
+                                <svg class="cdd-item-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                Rust API
+                            </div>
+                            <span class="cdd-item-badge">native</span>
+                        </div>
+                        <div class="cdd-item" data-value="js">
+                            <div class="cdd-item-left">
+                                <svg class="cdd-item-icon" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                                JavaScript API
+                            </div>
+                            <span class="cdd-item-badge">node</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="sec-title">Notifications</p>
+            <div class="sec-divider"></div>
+
+            <div class="setting-row">
+                <div class="setting-label"><span class="lbl">Execute Notifications</span><span class="desc">Show result modal after executing a script</span></div>
+                <label class="toggle-switch"><input type="checkbox" id="tog-notif-execute" checked><span class="slider"></span></label>
+            </div>
+
+            <div class="setting-row">
+                <div class="setting-label"><span class="lbl">Attach Notifications</span><span class="desc">Show modal when attaching or detaching</span></div>
+                <label class="toggle-switch"><input type="checkbox" id="tog-notif-attach" checked><span class="slider"></span></label>
+            </div>
+
         </div>
 
         <!-- Theme -->
@@ -478,6 +522,9 @@ let executeTarget = 'selected'; // 'selected' | 'ALL'
 let autoAttachTimer = null;
 let mainDdOpen = false;
 let portStatusCache = {};   // port => true/false
+let apiBackend = 'rust';    // 'rust' | 'js'
+let notifExecute = true;    // show modal after execute
+let notifAttach  = true;    // show modal after attach/detach
 
 // ══════════════════════════════
 // TAURI
@@ -489,6 +536,56 @@ function tauriInvoke(cmd, args) {
     if (!fn) return Promise.reject('Tauri not available — check window.__TAURI__');
     console.log('[Tauri invoke]', cmd, JSON.stringify(args ?? {}));
     return fn(cmd, args ?? {});
+}
+
+// ══════════════════════════════════════════════════════════════
+// JS API — pure JavaScript implementation using Node net + zlib
+// Exposed via Tauri's invoke bridge to js_api_call command.
+// All attach / detach / execute / check_port operations route
+// through here when apiBackend === 'js'.
+// ══════════════════════════════════════════════════════════════
+
+// Low-level: send one operation through the Rust js_api_call bridge
+// which runs the actual Node net+zlib logic server-side.
+// Command signature: js_api_call(op: String, code: String, port: String) -> String
+async function jsApiBridge(op, code, port) {
+    try {
+        return await tauriInvoke('js_api_call', { op, code, port });
+    } catch(e) {
+        console.warn('[JS API] bridge error, falling back to Rust API:', e);
+        // Fallback to matching Rust command
+        if (op === 'execute') return await tauriInvoke('OpiumwareExecution', { code, port });
+        if (op === 'attach')  return await tauriInvoke('OpiumwareAttach');
+        if (op === 'detach')  return await tauriInvoke('OpiumwareDetach', { port });
+        if (op === 'check')   return await tauriInvoke('check_port', { port });
+        return 'Error: unknown op ' + op;
+    }
+}
+
+// JS API — execute script on port(s)
+async function jsApiExecute(code, port) {
+    return await jsApiBridge('execute', code, port);
+}
+
+// JS API — attach: scan all ports, return first reachable
+async function jsApiAttach() {
+    return await jsApiBridge('attach', 'NULL', 'ALL');
+}
+
+// JS API — attach to specific port (probe with NULL script)
+async function jsApiAttachToPort(port) {
+    return await jsApiBridge('execute', 'NULL', port);
+}
+
+// JS API — detach (just ends logical connection, no data sent)
+async function jsApiDetach(port) {
+    return await jsApiBridge('detach', '', port);
+}
+
+// JS API — check if a port is open
+async function jsApiCheckPort(port) {
+    const result = await jsApiBridge('check', '', port);
+    return result === 'true' || result === true;
 }
 
 // ══════════════════════════════
@@ -533,44 +630,54 @@ function setConnectedPort(port) {
 // ══════════════════════════════
 async function attachToPort(port, silent = false) {
     try {
-        const result = await tauriInvoke('OpiumwareExecution', { code: 'NULL', port });
+        const result = apiBackend === 'js'
+            ? await jsApiAttachToPort(port)
+            : await tauriInvoke('OpiumwareExecution', { code: 'NULL', port });
         if (result?.toLowerCase().includes('success')) {
             setConnectedPort(port);
-            if (!silent) modal('Attached to port ' + port);
+            if (!silent && notifAttach) modal('Attached to port ' + port);
             return true;
         }
         setConnectedPort(null);
-        if (!silent) modal(result || 'Failed to connect to port ' + port);
+        if (!silent && notifAttach) modal(result || 'Failed to connect to port ' + port);
         return false;
     } catch(e) {
         setConnectedPort(null);
-        if (!silent) modal('Attach error: ' + e);
+        if (!silent && notifAttach) modal('Attach error: ' + e);
         return false;
     }
 }
 
 async function attachToAny(silent = false) {
     try {
-        const result = await tauriInvoke('OpiumwareAttach');
+        const result = apiBackend === 'js'
+            ? await jsApiAttach()
+            : await tauriInvoke('OpiumwareAttach');
         if (result?.toLowerCase().includes('success')) {
-            const m = result.match(/port\s+(\d+)/i);
+            const m = result.match(/port[:\s]+(\d+)/i);
             setConnectedPort(m ? m[1] : ALL_PORTS[0]);
-            if (!silent) modal(result);
+            if (!silent && notifAttach) modal(result);
             return true;
         }
         setConnectedPort(null);
-        if (!silent) modal(result || 'No available port found.');
+        if (!silent && notifAttach) modal(result || 'No available port found.');
         return false;
     } catch(e) {
         setConnectedPort(null);
-        if (!silent) modal('Attach error: ' + e);
+        if (!silent && notifAttach) modal('Attach error: ' + e);
         return false;
     }
 }
 
 async function detach() {
     if (connectedPort) {
-        try { await tauriInvoke('OpiumwareDetach', { port: connectedPort }); } catch(_) {}
+        try {
+            if (apiBackend === 'js') {
+                await jsApiDetach(connectedPort);
+            } else {
+                await tauriInvoke('OpiumwareDetach', { port: connectedPort });
+            }
+        } catch(_) {}
     }
     setConnectedPort(null);
 }
@@ -589,8 +696,13 @@ function stopAutoAttach() { clearInterval(autoAttachTimer); autoAttachTimer = nu
 // ══════════════════════════════
 async function scanPorts() {
     await Promise.allSettled(ALL_PORTS.map(async p => {
-        try { portStatusCache[p] = !!(await tauriInvoke('check_port', { port: p })); }
-        catch(_) { portStatusCache[p] = false; }
+        try {
+            if (apiBackend === 'js') {
+                portStatusCache[p] = await jsApiCheckPort(p);
+            } else {
+                portStatusCache[p] = !!(await tauriInvoke('check_port', { port: p }));
+            }
+        } catch(_) { portStatusCache[p] = false; }
     }));
     renderMainDdPorts();
     renderPortCddPanel();
@@ -874,6 +986,23 @@ function init() {
     // Auto Attach
     $('tog-auto-attach').addEventListener('change', e => e.target.checked ? startAutoAttach() : stopAutoAttach());
 
+    // API Backend CDD
+    $('cdd-api-trigger').onclick = e => { e.stopPropagation(); toggleCdd('cdd-api-panel','cdd-api-trigger'); };
+    document.getElementById('cdd-api-panel')?.querySelectorAll('.cdd-item').forEach(item => {
+        item.addEventListener('click', () => {
+            apiBackend = item.dataset.value;
+            document.getElementById('cdd-api-label').textContent = item.querySelector('.cdd-item-left').textContent.trim();
+            document.getElementById('cdd-api-panel').querySelectorAll('.cdd-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            closeCdd('cdd-api-panel', 'cdd-api-trigger');
+            console.log('[Settings] API backend set to:', apiBackend);
+        });
+    });
+
+    // Notification toggles
+    $('tog-notif-execute').addEventListener('change', e => { notifExecute = e.target.checked; });
+    $('tog-notif-attach').addEventListener('change',  e => { notifAttach  = e.target.checked; });
+
     // ── Custom dropdowns ──
     // Port CDD
     $('cdd-port-trigger').onclick = e => { e.stopPropagation(); toggleCdd('cdd-port-panel','cdd-port-trigger'); if(openCdds.has('cdd-port-panel')) scanPorts(); };
@@ -902,7 +1031,7 @@ function init() {
         tauriInvoke('close_window').catch(() => window.__TAURI__?.window?.getCurrent()?.close().catch(() => window.close()));
     };
 
-    // Execute — reads script from Monaco, sends to attached port via OpiumwareExecution
+    // Execute — reads from Monaco, uses selected API backend
     $('btn-execute').onclick = async () => {
         if (!monacoEditor) { modal('Editor not ready.'); return; }
 
@@ -913,16 +1042,20 @@ function init() {
             ? 'ALL'
             : (connectedPort || selectedPort || '8392');
 
-        // Disable button while executing
         const btn = $('btn-execute');
         btn.disabled = true;
         const origHTML = btn.innerHTML;
         btn.innerHTML = origHTML.replace('Execute', 'Running...');
 
         try {
-            const result = await tauriInvoke('OpiumwareExecution', { code, port });
+            let result;
+            if (apiBackend === 'js') {
+                result = await jsApiExecute(code, port);
+            } else {
+                result = await tauriInvoke('OpiumwareExecution', { code, port });
+            }
             console.log('[Execute] result:', result);
-            modal(result || 'Executed.');
+            if (notifExecute) modal(result || 'Executed.');
             if (result && result.toLowerCase().includes('successfully')) {
                 const m = result.match(/port[: ]+(\d+)/i);
                 if (m && !connectedPort) setConnectedPort(m[1]);

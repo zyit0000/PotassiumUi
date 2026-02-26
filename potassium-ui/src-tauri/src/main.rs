@@ -219,6 +219,116 @@ async fn save_file_dialog(
 }
 
 // ─────────────────────────────────────────────────────────────
+// COMMAND: js_api_call
+// Unified bridge for the JavaScript API backend.
+// op = "execute" | "attach" | "detach" | "check"
+// Implements the exact same logic as the user's JS API:
+//   - Net.createConnection equivalent via TcpStream
+//   - Zlib.deflate equivalent via ZlibEncoder (zlib/deflate)
+//   - Same port scanning loop, same return strings
+// ─────────────────────────────────────────────────────────────
+#[tauri::command]
+async fn js_api_call(op: String, code: String, port: String) -> String {
+    match op.as_str() {
+
+        // ── execute: mirrors your JS execute() exactly ──
+        "execute" => {
+            let ports_to_check: Vec<String> = match port.as_str() {
+                "ALL" => PORTS.iter().map(|s| s.to_string()).collect(),
+                _     => vec![port],
+            };
+
+            fn send_bytes(stream: &mut TcpStream, message: &str) -> Result<(), String> {
+                let compressed = compress_data(message.as_bytes()).map_err(|e| e.to_string())?;
+                stream.write_all(&compressed).map_err(|e| e.to_string())?;
+                println!("Script sent ({} bytes)", compressed.len());
+                Ok(())
+            }
+
+            let mut connected_port: Option<String> = None;
+            let mut stream_holder: Option<TcpStream> = None;
+
+            // Mirror: for (const P of ports) { try { Stream = connect... break } catch {} }
+            for p in &ports_to_check {
+                let addr = format!("127.0.0.1:{}", p);
+                let sock_addr: std::net::SocketAddr = match addr.parse() {
+                    Ok(a) => a, Err(_) => continue,
+                };
+                match TcpStream::connect_timeout(&sock_addr, Duration::from_millis(800)) {
+                    Ok(s) => {
+                        println!("Successfully connected to Opiumware on port: {}", p);
+                        connected_port = Some(p.clone());
+                        stream_holder  = Some(s);
+                        break; // mirror: break after first success
+                    }
+                    Err(e) => println!("Failed to connect to port {}: {}", p, e),
+                }
+            }
+
+            // Mirror: if (!Stream) return "Failed to connect on all ports"
+            let mut stream = match stream_holder {
+                Some(s) => s,
+                None    => return "Failed to connect on all ports".to_string(),
+            };
+
+            // Mirror: if (Code !== "NULL") { send... }
+            if code != "NULL" {
+                if let Err(e) = send_bytes(&mut stream, &code) {
+                    drop(stream);
+                    return format!("Error sending script: {}", e);
+                }
+            }
+
+            drop(stream);
+
+            // Mirror: return `Successfully connected to Opiumware on port: ${ConnectedPort}`
+            match connected_port {
+                Some(p) => format!("Successfully connected to Opiumware on port: {}", p),
+                None    => "Failed to connect on all ports".to_string(),
+            }
+        }
+
+        // ── attach: scan all ports, return first reachable ──
+        "attach" => {
+            for p in PORTS {
+                let addr = format!("127.0.0.1:{}", p);
+                let sock_addr: std::net::SocketAddr = match addr.parse() {
+                    Ok(a) => a, Err(_) => continue,
+                };
+                match TcpStream::connect_timeout(&sock_addr, Duration::from_millis(800)) {
+                    Ok(_) => {
+                        println!("[JS API] Attached on port {}", p);
+                        return format!("Successfully connected to Opiumware on port: {}", p);
+                    }
+                    Err(e) => println!("[JS API] Port {} unavailable: {}", p, e),
+                }
+            }
+            "Failed to connect on all ports".to_string()
+        }
+
+        // ── detach: logical disconnect, no bytes sent ──
+        "detach" => {
+            println!("[JS API] Detached from port {}", port);
+            format!("Detached from port {}", port)
+        }
+
+        // ── check: returns "true" or "false" as string ──
+        "check" => {
+            let addr = format!("127.0.0.1:{}", port);
+            let sock_addr: std::net::SocketAddr = match addr.parse() {
+                Ok(a) => a, Err(_) => return "false".to_string(),
+            };
+            match TcpStream::connect_timeout(&sock_addr, Duration::from_millis(400)) {
+                Ok(_)  => "true".to_string(),
+                Err(_) => "false".to_string(),
+            }
+        }
+
+        _ => format!("Unknown op: {}", op),
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
 // MAIN
 // ─────────────────────────────────────────────────────────────
 fn main() {
@@ -227,6 +337,7 @@ fn main() {
             OpiumwareAttach,
             OpiumwareExecution,
             OpiumwareDetach,
+            js_api_call,
             check_port,
             set_always_on_top,
             minimize_window,
