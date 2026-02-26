@@ -14,37 +14,25 @@ use tauri::{Manager, Window};
 fn compress_data(data: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
     encoder.write_all(data)?;
-    Ok(encoder.finish()?)
+    let compressed_data = encoder.finish()?;
+    Ok(compressed_data)
 }
 
 // ─────────────────────────────────────────────────────────────
-// Low-level port helpers
+// Port list
 // ─────────────────────────────────────────────────────────────
 const PORTS: &[&str] = &["8392", "8393", "8394", "8395", "8396", "8397"];
 
-fn try_connect(port: &str) -> std::io::Result<TcpStream> {
-    let addr = format!("127.0.0.1:{}", port);
-    let stream = TcpStream::connect_timeout(
-        &addr.parse().unwrap(),
-        Duration::from_millis(400),
-    )?;
-    Ok(stream)
-}
-
-fn send_script(stream: &mut TcpStream, code: &str) -> Result<(), Box<dyn Error>> {
-    let compressed = compress_data(code.as_bytes())?;
-    stream.write_all(&compressed)?;
-    Ok(())
-}
-
 // ─────────────────────────────────────────────────────────────
 // COMMAND: OpiumwareAttach
+// Scans all ports, returns the first reachable one.
 // ─────────────────────────────────────────────────────────────
 #[tauri::command]
 #[allow(non_snake_case)]
 async fn OpiumwareAttach() -> String {
     for port in PORTS {
-        match try_connect(port) {
+        let addr = format!("127.0.0.1:{}", port);
+        match TcpStream::connect_timeout(&addr.parse().unwrap(), Duration::from_millis(400)) {
             Ok(_) => {
                 println!("[Potassium] Attached on port {}", port);
                 return format!("Successfully attached on port {}", port);
@@ -57,55 +45,68 @@ async fn OpiumwareAttach() -> String {
 
 // ─────────────────────────────────────────────────────────────
 // COMMAND: OpiumwareExecution
+// Connects to the given port (or ALL ports) and sends the
+// zlib-compressed script. Matches your exact API spec.
 // ─────────────────────────────────────────────────────────────
 #[tauri::command]
 #[allow(non_snake_case)]
 async fn OpiumwareExecution(code: String, port: String) -> String {
-    let ports_to_try: Vec<String> = if port == "ALL" {
-        PORTS.iter().map(|s| s.to_string()).collect()
-    } else {
-        vec![port]
+    let ports_to_check: Vec<String> = match port.as_str() {
+        "ALL" => PORTS.iter().map(|s| s.to_string()).collect(),
+        _     => vec![port],
     };
 
-    let mut last_error = String::new();
-    let mut any_success = false;
-    let mut last_port = String::new();
+    // Inner send helper — mirrors your send_bytes exactly
+    fn send_bytes(stream: &mut TcpStream, message: &str) -> Result<(), String> {
+        let plaintext  = message.as_bytes();
+        let compressed = compress_data(plaintext).map_err(|e| e.to_string())?;
+        stream.write_all(&compressed).map_err(|e| e.to_string())?;
+        println!("Script sent ({} bytes)", compressed.len());
+        Ok(())
+    }
 
-    for p in &ports_to_try {
-        match try_connect(p) {
+    let mut any_success   = false;
+    let mut last_error    = String::new();
+    let mut success_ports: Vec<String> = Vec::new();
+
+    for p in &ports_to_check {
+        let server_address = format!("127.0.0.1:{}", p);
+        match TcpStream::connect(&server_address) {
             Ok(mut stream) => {
+                println!("Successfully connected to Opiumware on port: {}", p);
                 if code != "NULL" {
-                    match send_script(&mut stream, &code) {
+                    match send_bytes(&mut stream, &code) {
                         Ok(_) => {
-                            println!("[Potassium] Script sent to port {}", p);
                             any_success = true;
-                            last_port = p.clone();
+                            success_ports.push(p.clone());
                         }
                         Err(e) => {
-                            last_error = format!("Error sending to port {}: {}", p, e);
+                            last_error = format!("Error sending script: {}", e);
                             eprintln!("[Potassium] {}", last_error);
                         }
                     }
                 } else {
+                    // NULL = connection test / attach probe
                     any_success = true;
-                    last_port = p.clone();
+                    success_ports.push(p.clone());
                 }
+                drop(stream);
             }
             Err(e) => {
-                last_error = format!("Cannot connect to port {}: {}", p, e);
-                eprintln!("[Potassium] {}", last_error);
+                last_error = format!("Failed to connect to port {}: {}", p, e);
+                println!("[Potassium] {}", last_error);
             }
         }
     }
 
     if any_success {
-        if ports_to_try.len() == 1 {
-            format!("Successfully executed script on port {}", last_port)
+        if success_ports.len() == 1 {
+            format!("Successfully connected to Opiumware on port: {}", success_ports[0])
         } else {
-            "Successfully executed script on all reachable ports".to_string()
+            format!("Successfully executed on ports: {}", success_ports.join(", "))
         }
     } else {
-        format!("Execution failed: {}", last_error)
+        format!("Failed to connect on all ports. Last error: {}", last_error)
     }
 }
 
@@ -124,7 +125,8 @@ async fn OpiumwareDetach(port: String) -> String {
 // ─────────────────────────────────────────────────────────────
 #[tauri::command]
 async fn check_port(port: String) -> bool {
-    try_connect(&port).is_ok()
+    let addr = format!("127.0.0.1:{}", port);
+    TcpStream::connect_timeout(&addr.parse().unwrap(), Duration::from_millis(400)).is_ok()
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -165,7 +167,6 @@ async fn close_window(window: Window) -> Result<(), String> {
 
 // ─────────────────────────────────────────────────────────────
 // COMMAND: open_file_dialog
-// Uses rfd (Rusty File Dialogs) — no plugin required.
 // ─────────────────────────────────────────────────────────────
 #[derive(serde::Serialize)]
 struct FileResult {
@@ -195,7 +196,6 @@ async fn open_file_dialog(_window: Window) -> Result<Option<FileResult>, String>
 
 // ─────────────────────────────────────────────────────────────
 // COMMAND: save_file_dialog
-// Uses rfd (Rusty File Dialogs) — no plugin required.
 // ─────────────────────────────────────────────────────────────
 #[tauri::command]
 async fn save_file_dialog(
@@ -223,17 +223,14 @@ async fn save_file_dialog(
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
-            // Core exploit commands
             OpiumwareAttach,
             OpiumwareExecution,
             OpiumwareDetach,
             check_port,
-            // Window management
             set_always_on_top,
             minimize_window,
             toggle_maximize,
             close_window,
-            // File I/O
             open_file_dialog,
             save_file_dialog,
         ])

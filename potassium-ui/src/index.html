@@ -899,15 +899,29 @@ function init() {
         tauriInvoke('close_window').catch(() => window.__TAURI__?.window?.getCurrent()?.close().catch(() => window.close()));
     };
 
-    // Execute
+    // Execute — reads script from Monaco, sends to attached port via OpiumwareExecution
     $('btn-execute').onclick = async () => {
-        const tab = tabs.find(t => t.id === activeTabId);
-        if (!tab || !monacoEditor) { modal('No active editor.'); return; }
+        if (!monacoEditor) { modal('Editor not ready.'); return; }
+
         const code = monacoEditor.getValue();
         if (!code.trim()) { modal('Editor is empty.'); return; }
-        const port = executeTarget === 'ALL' ? 'ALL' : (connectedPort || selectedPort);
-        try { const result = await tauriInvoke('OpiumwareExecution', { code, port }); modal(result); }
-        catch(e) { modal('Execute failed: ' + e); }
+
+        // ALL = broadcast to every port; otherwise use connected port or fallback to selected
+        const port = executeTarget === 'ALL'
+            ? 'ALL'
+            : (connectedPort || selectedPort || '8392');
+
+        try {
+            const result = await tauriInvoke('OpiumwareExecution', { code, port });
+            modal(result);
+            // Auto-update connected port from success message if not already set
+            if (result.toLowerCase().includes('successfully connected')) {
+                const m = result.match(/port[: ]+(\d+)/i);
+                if (m && !connectedPort) setConnectedPort(m[1]);
+            }
+        } catch(e) {
+            modal('Execute failed: ' + String(e));
+        }
     };
 
     $('btn-clear').onclick = () => monacoEditor?.setValue('');
