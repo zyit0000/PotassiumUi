@@ -37,11 +37,10 @@ jobs:
 
       - name: Build Tauri app (universal macOS binary)
         working-directory: potassium-ui
-        run: npx tauri build --target universal-apple-darwin
+        # Added --config flag to explicitly point to the file location
+        run: npx tauri build --target universal-apple-darwin --config tauri.conf.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Path is relative to 'potassium-ui' folder
-          TAURI_CONFIG_PATH: tauri.conf.json
 
       - name: Upload macOS .dmg artifact
         uses: actions/upload-artifact@v4
@@ -79,11 +78,10 @@ jobs:
 
       - name: Build Tauri app
         working-directory: potassium-ui
-        run: npx tauri build
+        # Added --config flag here as well
+        run: npx tauri build --config tauri.conf.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Path is relative to 'potassium-ui' folder
-          TAURI_CONFIG_PATH: tauri.conf.json
 
       - name: Upload Windows installer artifact
         uses: actions/upload-artifact@v4
