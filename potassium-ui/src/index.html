@@ -71,7 +71,8 @@
         /* ── TAB BAR ── */
         #tab-bar { background: var(--bg-primary); display: flex; align-items: center; padding: 0 4px 0 0; height: 34px; overflow: hidden; }
         #tabs-and-add { display: flex; align-items: flex-end; flex-grow: 1; height: 100%; overflow: hidden; }
-        #tabs-container { display: flex; align-items: flex-end; overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--bg-tertiary) var(--bg-primary); height: 100%; max-width: calc(100% - 30px); }
+        #tabs-container { display: flex; align-items: flex-end; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; height: 100%; max-width: calc(100% - 30px); }
+        #tabs-container::-webkit-scrollbar { display: none; }
         .tab { display: flex; align-items: center; padding: 8px 10px; margin-right: 1px; background: var(--bg-primary); color: var(--text-secondary); font-size: 12px; cursor: pointer; border: none; position: relative; bottom: -1px; max-width: 160px; white-space: nowrap; overflow: hidden; line-height: 1; flex-shrink: 0; }
         .tab.active { background: var(--bg-tertiary); color: var(--text-active-tab); z-index: 1; }
         .tab-icon { margin-right: 6px; width: 14px; height: 14px; fill: currentColor; stroke: none; opacity: 0.7; flex-shrink: 0; }
@@ -88,11 +89,12 @@
         #tab-bar-search-input::placeholder { color: var(--text-tertiary); }
 
         /* ── APP BODY ── */
-        #app-body { flex-grow: 1; display: flex; overflow: hidden; border-top: 1px solid var(--border-secondary); position: relative; }
+        #app-body { flex-grow: 1; display: flex; overflow: hidden; position: relative; }
         #app-body.settings-active, #app-body.theme-active { border-top: none; }
         #editor-view { display: flex; width: 100%; height: 100%; }
-        #main-editor { flex-grow: 1; display: flex; overflow: hidden; background: var(--bg-secondary); }
+        #main-editor { flex-grow: 1; display: flex; overflow: hidden; background: #1a1a1a; }
         #monaco-container { width: 100%; height: 100%; }
+        #right-sidebar { width: 230px; flex-shrink: 0; background: #1d1d1d; border-left: 1px solid var(--border-secondary); height: 100%; box-sizing: border-box; }
 
         /* ── SETTINGS / THEME VIEWS ── */
         #settings-view, #theme-view { width: 100%; height: 100%; background: var(--bg-primary); padding: 22px 26px; display: none; overflow-y: auto; }
@@ -168,7 +170,7 @@
 
         /* Theme */
         .theme-options { display: flex; flex-direction: column; gap: 10px; }
-        .theme-opt { display: flex; align-items: center; padding: 12px; border: 2px solid var(--theme-border); border-radius: 8px; cursor: pointer; transition: border-color .3s, box-shadow .3s; background: var(--bg-secondary); }
+        .theme-opt { display: flex; align-items: center; padding: 12px; border: 2px solid var(--theme-border); border-radius: 8px; cursor: pointer; transition: border-color .3s, box-shadow .3s; background: #1a1a1a; }
         .theme-opt:hover, .theme-opt.active-theme { border-color: var(--theme-border-active); }
         .theme-opt.active-theme { box-shadow: 0 0 10px rgba(160,160,160,.12); }
         .theme-preview { width: 80px; height: 50px; border-radius: 4px; margin-right: 14px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-primary); }
@@ -265,12 +267,14 @@
         </div>
     </header>
 
+
     <!-- BODY -->
     <div id="app-body">
 
         <!-- Editor -->
         <div id="editor-view">
             <main id="main-editor"><div id="monaco-container"></div></main>
+            <div id="right-sidebar"></div>
         </div>
 
         <!-- Settings -->
@@ -907,10 +911,38 @@ function init() {
     };
 
     $('btn-clear').onclick = () => monacoEditor?.setValue('');
-    $('btn-open').onclick  = async () => { try { const r = await tauriInvoke('open_file_dialog'); if(r) addTab(r.name, r.content); } catch(_) {} };
+    $('btn-open').onclick  = async () => {
+        // Try Tauri first, fall back to browser file picker
+        if (window.__TAURI__) {
+            try { const r = await tauriInvoke('open_file_dialog'); if(r) addTab(r.name, r.content); return; } catch(_) {}
+        }
+        // Browser fallback
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.lua,.txt,*';
+        input.onchange = async () => {
+            const file = input.files[0];
+            if (!file) return;
+            const text = await file.text();
+            addTab(file.name, text);
+        };
+        input.click();
+    };
     $('btn-save').onclick  = async () => {
         const tab = tabs.find(t=>t.id===activeTabId); if(!tab) return;
-        try { await tauriInvoke('save_file_dialog', { content: monacoEditor?.getValue()||'', suggested_name: tab.name }); } catch(_) {}
+        const content = monacoEditor?.getValue() || '';
+        // Try Tauri first, fall back to browser download
+        if (window.__TAURI__) {
+            try { await tauriInvoke('save_file_dialog', { content, suggested_name: tab.name }); return; } catch(_) {}
+        }
+        // Browser fallback — triggers a download
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = tab.name.endsWith('.lua') || tab.name.endsWith('.txt') ? tab.name : tab.name + '.lua';
+        a.click();
+        URL.revokeObjectURL(url);
     };
     $('add-tab-btn').onclick = () => addTab();
 

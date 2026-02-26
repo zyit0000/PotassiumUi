@@ -8,9 +8,6 @@ use flate2::Compression;
 
 use tauri::{Manager, Window};
 
-#[cfg(target_os = "windows")]
-use tauri::window::Effect;
-
 // ─────────────────────────────────────────────────────────────
 // Compression helper
 // ─────────────────────────────────────────────────────────────
@@ -25,8 +22,6 @@ fn compress_data(data: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
 // ─────────────────────────────────────────────────────────────
 const PORTS: &[&str] = &["8392", "8393", "8394", "8395", "8396", "8397"];
 
-/// Try to open a TCP connection to 127.0.0.1:<port>.
-/// Returns Ok(stream) or Err.
 fn try_connect(port: &str) -> std::io::Result<TcpStream> {
     let addr = format!("127.0.0.1:{}", port);
     let stream = TcpStream::connect_timeout(
@@ -36,7 +31,6 @@ fn try_connect(port: &str) -> std::io::Result<TcpStream> {
     Ok(stream)
 }
 
-/// Send a script over an open stream (zlib-compressed).
 fn send_script(stream: &mut TcpStream, code: &str) -> Result<(), Box<dyn Error>> {
     let compressed = compress_data(code.as_bytes())?;
     stream.write_all(&compressed)?;
@@ -45,7 +39,6 @@ fn send_script(stream: &mut TcpStream, code: &str) -> Result<(), Box<dyn Error>>
 
 // ─────────────────────────────────────────────────────────────
 // COMMAND: OpiumwareAttach
-// Tries all ports, returns result string.
 // ─────────────────────────────────────────────────────────────
 #[tauri::command]
 #[allow(non_snake_case)]
@@ -64,8 +57,6 @@ async fn OpiumwareAttach() -> String {
 
 // ─────────────────────────────────────────────────────────────
 // COMMAND: OpiumwareExecution
-// Sends a script (or "NULL" as a keep-alive / connection test)
-// to one port or all ports.
 // ─────────────────────────────────────────────────────────────
 #[tauri::command]
 #[allow(non_snake_case)]
@@ -96,7 +87,6 @@ async fn OpiumwareExecution(code: String, port: String) -> String {
                         }
                     }
                 } else {
-                    // NULL = connection test only
                     any_success = true;
                     last_port = p.clone();
                 }
@@ -121,23 +111,16 @@ async fn OpiumwareExecution(code: String, port: String) -> String {
 
 // ─────────────────────────────────────────────────────────────
 // COMMAND: OpiumwareDetach
-// "Detach" by simply dropping the connection (no data sent).
-// The front-end calls this before closing.
 // ─────────────────────────────────────────────────────────────
 #[tauri::command]
 #[allow(non_snake_case)]
 async fn OpiumwareDetach(port: String) -> String {
-    // Just confirm the port is no longer being held.
-    // Since Rust TcpStream drops on close, there's nothing to explicitly undo.
-    // If you need to send a disconnect signal to the exploit, do it here.
     println!("[Potassium] Detached from port {}", port);
     format!("Detached from port {}", port)
 }
 
 // ─────────────────────────────────────────────────────────────
 // COMMAND: check_port
-// Returns true if the port is currently open/reachable.
-// Used by the front-end dropdown to show green dots.
 // ─────────────────────────────────────────────────────────────
 #[tauri::command]
 async fn check_port(port: String) -> bool {
@@ -149,9 +132,7 @@ async fn check_port(port: String) -> bool {
 // ─────────────────────────────────────────────────────────────
 #[tauri::command]
 async fn set_always_on_top(window: Window, value: bool) -> Result<(), String> {
-    window
-        .set_always_on_top(value)
-        .map_err(|e| e.to_string())
+    window.set_always_on_top(value).map_err(|e| e.to_string())
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -184,7 +165,7 @@ async fn close_window(window: Window) -> Result<(), String> {
 
 // ─────────────────────────────────────────────────────────────
 // COMMAND: open_file_dialog
-// Opens a native file picker, returns { name, content }.
+// Uses rfd (Rusty File Dialogs) — no plugin required.
 // ─────────────────────────────────────────────────────────────
 #[derive(serde::Serialize)]
 struct FileResult {
@@ -193,20 +174,14 @@ struct FileResult {
 }
 
 #[tauri::command]
-async fn open_file_dialog(window: Window) -> Result<Option<FileResult>, String> {
-    use tauri_plugin_dialog::DialogExt;
-
-    let path = window
-        .app_handle()
-        .dialog()
-        .file()
+async fn open_file_dialog(_window: Window) -> Result<Option<FileResult>, String> {
+    let path = rfd::FileDialog::new()
         .add_filter("Lua Scripts", &["lua", "txt"])
         .add_filter("All Files", &["*"])
-        .blocking_pick_file();
+        .pick_file();
 
     match path {
-        Some(p) => {
-            let path_buf = p.into_path().map_err(|e| e.to_string())?;
+        Some(path_buf) => {
             let name = path_buf
                 .file_name()
                 .map(|n| n.to_string_lossy().into_owned())
@@ -220,27 +195,21 @@ async fn open_file_dialog(window: Window) -> Result<Option<FileResult>, String> 
 
 // ─────────────────────────────────────────────────────────────
 // COMMAND: save_file_dialog
-// Opens a native save picker and writes the content.
+// Uses rfd (Rusty File Dialogs) — no plugin required.
 // ─────────────────────────────────────────────────────────────
 #[tauri::command]
 async fn save_file_dialog(
-    window: Window,
+    _window: Window,
     content: String,
     suggested_name: String,
 ) -> Result<bool, String> {
-    use tauri_plugin_dialog::DialogExt;
-
-    let path = window
-        .app_handle()
-        .dialog()
-        .file()
+    let path = rfd::FileDialog::new()
         .set_file_name(&suggested_name)
         .add_filter("Lua Scripts", &["lua", "txt"])
-        .blocking_save_file();
+        .save_file();
 
     match path {
-        Some(p) => {
-            let path_buf = p.into_path().map_err(|e| e.to_string())?;
+        Some(path_buf) => {
             std::fs::write(&path_buf, content).map_err(|e| e.to_string())?;
             Ok(true)
         }
@@ -253,8 +222,6 @@ async fn save_file_dialog(
 // ─────────────────────────────────────────────────────────────
 fn main() {
     tauri::Builder::default()
-        // If you're using the dialog plugin, register it:
-        // .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             // Core exploit commands
             OpiumwareAttach,
