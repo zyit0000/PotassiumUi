@@ -40,6 +40,8 @@ jobs:
         run: npx tauri build --target universal-apple-darwin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Path is relative to 'potassium-ui' folder
+          TAURI_CONFIG_PATH: tauri.conf.json
 
       - name: Upload macOS .dmg artifact
         uses: actions/upload-artifact@v4
@@ -80,6 +82,8 @@ jobs:
         run: npx tauri build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Path is relative to 'potassium-ui' folder
+          TAURI_CONFIG_PATH: tauri.conf.json
 
       - name: Upload Windows installer artifact
         uses: actions/upload-artifact@v4
