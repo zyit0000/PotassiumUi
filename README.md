@@ -1,10 +1,5 @@
 ﻿# Potassium UI
 
-Potassium is a **Tauri desktop UI** built to work with the **Opiumware execution API** (community project).
-
-- UI for Opiumware: `discord.gg/opiumware`
-- Goal: a clean editor + tabbed workflow + connection/execute controls.
-
 ## Features
 
 - **Monaco editor** (Lua), tabs, rename/close tabs
