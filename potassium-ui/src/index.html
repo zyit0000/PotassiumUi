@@ -709,6 +709,15 @@ function modal(msg) {
     document.body.appendChild(ov); btn.focus();
 }
 
+// SCRIPT NORMALIZATION
+function toOpiumwarePacket(editorCode) {
+    const code = String(editorCode ?? '').trim();
+    if (!code) return '';
+    if (code === 'NULL') return 'NULL';
+    if (/^Opiumware(?:Script|Setting)\b/.test(code)) return code;
+    return 'OpiumwareScript ' + code;
+}
+
 // ══════════════════════════════
 // CONNECTION STATE
 // ══════════════════════════════
@@ -1172,12 +1181,12 @@ function init() {
     $('btn-execute').onclick = async () => {
         if (!monacoEditor) { modal('Editor not ready.'); return; }
 
-        const code = monacoEditor.getValue();
-        if (!code.trim()) { modal('Editor is empty.'); return; }
+        const code = toOpiumwarePacket(monacoEditor.getValue());
+        if (!code) { modal('Editor is empty.'); return; }
 
         const port = executeTarget === 'ALL'
             ? 'ALL'
-            : (connectedPort || selectedPort || '8392');
+            : (selectedPort || '8392');
 
         const btn = $('btn-execute');
         btn.disabled = true;
