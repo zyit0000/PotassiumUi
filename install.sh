@@ -12,7 +12,6 @@ NC='\033[0m' # No Color
 clear
 
 # --- Configuration ---
-# Targeting the specific 'Release' tag
 REPO_API_URL="https://api.github.com/repos/zyit0000/PotassiumUi/releases/tags/Release"
 APP_NAME="Potassium.app"
 APPLICATIONS_DIR="/Applications"
@@ -34,71 +33,63 @@ if [ -d "$APPLICATIONS_DIR/$APP_NAME" ]; then
         echo -e "${BLUE}[-] Installation cancelled.${NC}"
         exit 0
     fi
-    # Remove old version to ensure a clean install
     sudo rm -rf "$APPLICATIONS_DIR/$APP_NAME"
 fi
 
-# 1. Fetch Release Info and Find DMG
+# 1. Fetch Release Info
 echo -e "${CYAN}[i] Checking for DMG in 'Release' tag...${NC}"
-
-# API call to get release data
 RELEASE_DATA=$(curl -s "$REPO_API_URL")
-
-# Extract the browser_download_url for the asset ending in .dmg
 DOWNLOAD_URL=$(echo "$RELEASE_DATA" | grep -o 'https://[^"]*\.dmg' | head -n 1)
 
 if [ -z "$DOWNLOAD_URL" ]; then
     echo -e "${RED}[!] Error: Could not find a .dmg file in the 'Release' tag.${NC}"
-    echo -e "${YELLOW}[?] Please ensure a .dmg is uploaded to the 'Release' tag assets.${NC}"
     exit 1
 fi
 
 DMG_FILENAME=$(basename "$DOWNLOAD_URL")
-echo -e "${GREEN}[<checkmark>] Found: $DMG_FILENAME${NC}"
+echo -e "${GREEN}[✓] Found: $DMG_FILENAME${NC}"
 
-# 2. Download the DMG
+# 2. Download
 echo -e "${CYAN}[i] Downloading installer...${NC}"
 curl -L -s "$DOWNLOAD_URL" -o "$DMG_FILENAME"
 
 if [ $? -ne 0 ]; then
-    echo -e "${RED}[!] Error: Failed to download the DMG.${NC}"
+    echo -e "${RED}[!] Error: Failed to download.${NC}"
     exit 1
 fi
-echo -e "${GREEN}[<checkmark>] Download complete.${NC}"
+echo -e "${GREEN}[✓] Download complete.${NC}"
 
-# 3. Mount the DMG
+# 3. Mount
 echo -e "${CYAN}[i] Mounting disk image...${NC}"
 MOUNT_POINT=$(mktemp -d)
 hdiutil attach "$DMG_FILENAME" -nobrowse -quiet -mountpoint "$MOUNT_POINT"
 
 if [ $? -ne 0 ]; then
-    echo -e "${RED}[!] Error: Failed to mount the DMG.${NC}"
+    echo -e "${RED}[!] Error: Failed to mount.${NC}"
     rm -f "$DMG_FILENAME"
     exit 1
 fi
-echo -e "${GREEN}[<checkmark>] DMG mounted successfully.${NC}"
+echo -e "${GREEN}[✓] DMG mounted successfully.${NC}"
 
-# 4. Locate .app bundle inside DMG
+# 4. Locate App
 APP_PATH_IN_DMG=$(find "$MOUNT_POINT" -maxdepth 1 -type d -name "*.app" | head -n 1)
 
 if [ -z "$APP_PATH_IN_DMG" ]; then
-    echo -e "${RED}[!] Error: No .app bundle found inside the DMG.${NC}"
+    echo -e "${RED}[!] Error: No .app found inside DMG.${NC}"
     hdiutil detach "$MOUNT_POINT" -force > /dev/null 2>&1
-    rm -rf "$MOUNT_POINT"
-    rm -f "$DMG_FILENAME"
     exit 1
 fi
 
-# 5. Copy to Applications
+# 5. Install
 echo -e "${CYAN}[i] Installing to $APPLICATIONS_DIR...${NC}"
 sudo cp -R "$APP_PATH_IN_DMG" "$APPLICATIONS_DIR/"
 
 if [ $? -ne 0 ]; then
-    echo -e "${RED}[!] Error: Failed to copy files. Check sudo permissions.${NC}"
+    echo -e "${RED}[!] Error: Copy failed.${NC}"
     hdiutil detach "$MOUNT_POINT" -force > /dev/null 2>&1
     exit 1
 fi
-echo -e "${GREEN}[<checkmark>] Application installed successfully.${NC}"
+echo -e "${GREEN}[✓] Application installed successfully.${NC}"
 
 # 6. Cleanup
 echo -e "${CYAN}[i] Cleaning up...${NC}"
@@ -106,7 +97,7 @@ hdiutil detach "$MOUNT_POINT" -force > /dev/null 2>&1
 rm -rf "$MOUNT_POINT"
 rm -f "$DMG_FILENAME"
 
-echo -e "${GREEN}[<checkmark>] Setup complete! Potassium is ready.${NC}"
+echo -e "${GREEN}[✓] Setup complete! Potassium is ready.${NC}"
 echo ""
 echo -e "${CYAN}Ui by 7sleeps${NC}"
 echo -e "${CYAN}Backend by ZYiT0${NC}"
