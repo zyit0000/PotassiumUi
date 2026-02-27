@@ -519,118 +519,12 @@ const initialContent = '-- Potassium\n';
 let connectedPort = null;
 let selectedPort  = '8392';   // currently selected port in settings
 let executeTarget = 'selected'; // 'selected' | 'ALL'
-let attachMode    = 'selected'; // 'selected' | 'any' (controls Attach button + auto-attach behavior)
 let autoAttachTimer = null;
 let mainDdOpen = false;
 let portStatusCache = {};   // port => true/false
 let apiBackend = 'rust';    // 'rust' | 'js'
 let notifExecute = true;    // show modal after execute
 let notifAttach  = true;    // show modal after attach/detach
-let themeName    = 'dark';  // 'dark' | 'light'
-let settingsApplying = false;
-
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// SETTINGS (persistence)
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-const SETTINGS_KEY = 'potassium.settings.v1';
-
-function loadSettings() {
-    try {
-        const raw = localStorage.getItem(SETTINGS_KEY);
-        if (!raw) return {};
-        const parsed = JSON.parse(raw);
-        return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch(_) { return {}; }
-}
-
-function saveSettings() {
-    const data = {
-        selectedPort,
-        executeTarget,
-        attachMode,
-        apiBackend,
-        notifExecute,
-        notifAttach,
-        themeName,
-        autoAttach:  !!document.getElementById('tog-auto-attach')?.checked,
-        minimap:     !!document.getElementById('tog-minimap')?.checked,
-        lineNums:    !!document.getElementById('tog-linenums')?.checked,
-        alwaysOnTop: !!document.getElementById('tog-aot')?.checked,
-    };
-    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(data)); } catch(_) {}
-}
-
-function applySettings(s) {
-    settingsApplying = true;
-    try {
-        if (s?.selectedPort && ALL_PORTS.includes(String(s.selectedPort))) selectedPort = String(s.selectedPort);
-        if (s?.executeTarget === 'ALL' || s?.executeTarget === 'selected') executeTarget = s.executeTarget;
-        if (s?.attachMode === 'any' || s?.attachMode === 'selected') attachMode = s.attachMode;
-        if (s?.apiBackend === 'js' || s?.apiBackend === 'rust') apiBackend = s.apiBackend;
-        if (typeof s?.notifExecute === 'boolean') notifExecute = s.notifExecute;
-        if (typeof s?.notifAttach === 'boolean')  notifAttach  = s.notifAttach;
-        if (s?.themeName === 'light' || s?.themeName === 'dark') themeName = s.themeName;
-
-        // Theme
-        applyTheme(themeName);
-
-        // Checkboxes
-        const autoAttachEl = document.getElementById('tog-auto-attach');
-        const minimapEl    = document.getElementById('tog-minimap');
-        const lineNumsEl   = document.getElementById('tog-linenums');
-        const aotEl        = document.getElementById('tog-aot');
-        const neEl         = document.getElementById('tog-notif-execute');
-        const naEl         = document.getElementById('tog-notif-attach');
-
-        if (autoAttachEl && typeof s?.autoAttach === 'boolean') autoAttachEl.checked = s.autoAttach;
-        if (minimapEl    && typeof s?.minimap === 'boolean')    minimapEl.checked    = s.minimap;
-        if (lineNumsEl   && typeof s?.lineNums === 'boolean')   lineNumsEl.checked   = s.lineNums;
-        if (aotEl        && typeof s?.alwaysOnTop === 'boolean') aotEl.checked       = s.alwaysOnTop;
-        if (neEl) neEl.checked = !!notifExecute;
-        if (naEl) naEl.checked = !!notifAttach;
-
-        // Monaco editor options
-        monacoEditor?.updateOptions({
-            minimap: { enabled: !!minimapEl?.checked },
-            lineNumbers: !!lineNumsEl?.checked ? 'on' : 'off',
-        });
-
-        // Always on top (best-effort)
-        tauriInvoke('set_always_on_top', { value: !!aotEl?.checked }).catch(() => {});
-
-        // Execute CDD label + active state
-        const execLabel = document.getElementById('cdd-execute-label');
-        if (execLabel) execLabel.textContent = executeTarget === 'ALL' ? 'All Ports' : 'Selected Port';
-        document.querySelectorAll('#cdd-execute-panel .cdd-item').forEach(el => {
-            el.classList.toggle('active', el.dataset.value === executeTarget);
-        });
-
-        // API CDD label + active state
-        const apiLabel = document.getElementById('cdd-api-label');
-        if (apiLabel) apiLabel.textContent = apiBackend === 'js' ? 'JavaScript API' : 'Rust API';
-        document.querySelectorAll('#cdd-api-panel .cdd-item').forEach(el => {
-            el.classList.toggle('active', el.dataset.value === apiBackend);
-        });
-
-        // Attach CDD label + active state
-        const attachLabel = document.getElementById('cdd-attach-label');
-        if (attachLabel) attachLabel.textContent = attachMode === 'any' ? 'Attach to Any Available' : 'Attach to Selected Port';
-        document.querySelectorAll('#cdd-attach-panel .cdd-item').forEach(el => {
-            const action = el.dataset.action;
-            el.classList.toggle('active', (action === 'selected' && attachMode === 'selected') || (action === 'any' && attachMode === 'any'));
-        });
-
-        // Port CDD
-        renderPortCddPanel();
-        refreshPortCddTrigger();
-
-        // Auto-attach
-        if (autoAttachEl?.checked) startAutoAttach(true);
-        else stopAutoAttach();
-    } finally {
-        settingsApplying = false;
-    }
-}
 
 // ══════════════════════════════
 // TAURI
@@ -729,7 +623,6 @@ function setConnectedPort(port) {
     refreshPortCddTrigger();
     renderMainDdPorts();
     renderPortCddPanel();
-    if (!settingsApplying) saveSettings();
 }
 
 // ══════════════════════════════
@@ -792,22 +685,9 @@ async function detach() {
 // ══════════════════════════════
 // AUTO ATTACH
 // ══════════════════════════════
-function startAutoAttach(silent = false) {
+function startAutoAttach() {
     if (autoAttachTimer) return;
-
-    // Try once immediately, then keep retrying.
-    if (!connectedPort) {
-        if (attachMode === 'any') attachToAny(true);
-        else attachToPort(selectedPort, true);
-    }
-
-    autoAttachTimer = setInterval(() => {
-        if (connectedPort) return;
-        if (attachMode === 'any') attachToAny(true);
-        else attachToPort(selectedPort, true);
-    }, 3000);
-
-    if (!silent && notifAttach) modal('Auto attach enabled.');
+    autoAttachTimer = setInterval(() => { if (!connectedPort) attachToAny(true); }, 3000);
 }
 function stopAutoAttach() { clearInterval(autoAttachTimer); autoAttachTimer = null; }
 
@@ -934,7 +814,6 @@ function renderPortCddPanel() {
             closeCdd('cdd-port-panel', 'cdd-port-trigger');
             refreshPortCddTrigger();
             renderPortCddPanel();
-            if (!settingsApplying) saveSettings();
         });
         panel.appendChild(item);
     });
@@ -963,7 +842,6 @@ function setupExecuteCdd() {
             panel.querySelectorAll('.cdd-item').forEach(i => i.classList.remove('active'));
             item.classList.add('active');
             closeCdd('cdd-execute-panel', 'cdd-execute-trigger');
-            if (!settingsApplying) saveSettings();
         });
     });
 }
@@ -977,21 +855,12 @@ function setupAttachCdd() {
         item.addEventListener('click', async () => {
             const action = item.dataset.action;
             const labelEl = document.getElementById('cdd-attach-label');
+            if (labelEl) labelEl.textContent = item.querySelector('.cdd-item-left').textContent.trim();
             closeCdd('cdd-attach-panel', 'cdd-attach-trigger');
 
             if (action === 'selected') {
-                attachMode = 'selected';
-                if (labelEl) labelEl.textContent = item.querySelector('.cdd-item-left').textContent.trim();
-                panel.querySelectorAll('.cdd-item').forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-                if (!settingsApplying) saveSettings();
                 await attachToPort(selectedPort);
             } else if (action === 'any') {
-                attachMode = 'any';
-                if (labelEl) labelEl.textContent = item.querySelector('.cdd-item-left').textContent.trim();
-                panel.querySelectorAll('.cdd-item').forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-                if (!settingsApplying) saveSettings();
                 await attachToAny(false);
             } else if (action === 'detach') {
                 await detach();
@@ -1071,12 +940,10 @@ function showTheme()    { editorView.style.display='none'; settingsView.style.di
 function setNav(active) { [navEditor,navSettings,navTheme].forEach(n=>n.classList.remove('active-section-indicator')); active.classList.add('active-section-indicator'); }
 
 function applyTheme(name) {
-    themeName = name === 'light' ? 'light' : 'dark';
     appContainer.classList.toggle('light-theme', name==='light');
     document.querySelectorAll('.theme-opt').forEach(e=>e.classList.remove('active-theme'));
     if (name==='light') { $('theme-light')?.classList.add('active-theme'); if(monacoEditor) monaco.editor.setTheme('vs'); }
     else                { $('theme-dark')?.classList.add('active-theme');  if(monacoEditor) monaco.editor.setTheme('vs-dark'); }
-    if (!settingsApplying) saveSettings();
 }
 
 // ══════════════════════════════
@@ -1096,9 +963,7 @@ function init() {
 
     navEditor.classList.add('active-section-indicator');
     showEditor();
-
-    // Apply persisted settings (theme, toggles, dropdowns, etc.)
-    applySettings(loadSettings());
+    applyTheme('dark');
 
     // Nav
     navEditor.onclick   = () => { showEditor();   setNav(navEditor); };
@@ -1110,17 +975,16 @@ function init() {
     $('theme-light').onclick = () => applyTheme('light');
 
     // Editor toggles
-    $('tog-minimap').addEventListener('change', e => { monacoEditor?.updateOptions({ minimap: { enabled: e.target.checked } }); if(!settingsApplying) saveSettings(); });
-    $('tog-linenums').addEventListener('change', e => { monacoEditor?.updateOptions({ lineNumbers: e.target.checked ? 'on' : 'off' }); if(!settingsApplying) saveSettings(); });
+    $('tog-minimap').addEventListener('change', e => monacoEditor?.updateOptions({ minimap: { enabled: e.target.checked } }));
+    $('tog-linenums').addEventListener('change', e => monacoEditor?.updateOptions({ lineNumbers: e.target.checked ? 'on' : 'off' }));
 
     // Always on top
     $('tog-aot').addEventListener('change', async e => {
         try { await tauriInvoke('set_always_on_top', { value: e.target.checked }); } catch(_) {}
-        if(!settingsApplying) saveSettings();
     });
 
     // Auto Attach
-    $('tog-auto-attach').addEventListener('change', e => { e.target.checked ? startAutoAttach(false) : stopAutoAttach(); if(!settingsApplying) saveSettings(); });
+    $('tog-auto-attach').addEventListener('change', e => e.target.checked ? startAutoAttach() : stopAutoAttach());
 
     // API Backend CDD
     $('cdd-api-trigger').onclick = e => { e.stopPropagation(); toggleCdd('cdd-api-panel','cdd-api-trigger'); };
@@ -1132,13 +996,12 @@ function init() {
             item.classList.add('active');
             closeCdd('cdd-api-panel', 'cdd-api-trigger');
             console.log('[Settings] API backend set to:', apiBackend);
-            if(!settingsApplying) saveSettings();
         });
     });
 
     // Notification toggles
-    $('tog-notif-execute').addEventListener('change', e => { notifExecute = e.target.checked; if(!settingsApplying) saveSettings(); });
-    $('tog-notif-attach').addEventListener('change',  e => { notifAttach  = e.target.checked; if(!settingsApplying) saveSettings(); });
+    $('tog-notif-execute').addEventListener('change', e => { notifExecute = e.target.checked; });
+    $('tog-notif-attach').addEventListener('change',  e => { notifAttach  = e.target.checked; });
 
     // ── Custom dropdowns ──
     // Port CDD
@@ -1155,7 +1018,7 @@ function init() {
     setupExecuteCdd();
 
     // ── Main action-bar Attach button + caret ──
-    $('attach-btn').onclick = () => (attachMode === 'any' ? attachToAny(false) : attachToPort(selectedPort, false));
+    $('attach-btn').onclick = () => attachToAny(false);
     $('attach-caret').onclick = e => { e.stopPropagation(); toggleMainDd(); };
     $('dd-attach-any').onclick = () => { closeMainDd(); attachToAny(false); };
     $('dd-detach').onclick     = () => { closeMainDd(); detach(); };

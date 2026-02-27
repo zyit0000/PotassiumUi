@@ -6,7 +6,7 @@ use std::error::Error;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
 
-use tauri::{Manager, Window};
+use tauri::Window;
 
 // ─────────────────────────────────────────────────────────────
 // Compression helper
@@ -232,17 +232,64 @@ async fn js_api_call(op: String, code: String, port: String) -> String {
     match op.as_str() {
 
         // ── execute: mirrors your JS execute() exactly ──
-        "execute" => {
-            let ports_to_check: Vec<String> = match port.as_str() {
-                "ALL" => PORTS.iter().map(|s| s.to_string()).collect(),
-                _     => vec![port],
-            };
+	        "execute" => {
+	            let ports_to_check: Vec<String> = match port.as_str() {
+	                "ALL" => PORTS.iter().map(|s| s.to_string()).collect(),
+	                _     => vec![port.clone()],
+	            };
 
             fn send_bytes(stream: &mut TcpStream, message: &str) -> Result<(), String> {
                 let compressed = compress_data(message.as_bytes()).map_err(|e| e.to_string())?;
                 stream.write_all(&compressed).map_err(|e| e.to_string())?;
                 println!("Script sent ({} bytes)", compressed.len());
                 Ok(())
+            }
+
+            // When explicitly executing to ALL ports, actually send to every reachable port.
+            // (The original JS prototype scanned for the first open port, but the UI setting
+            // "All Ports" expects broadcast behavior.)
+            if port.as_str() == "ALL" && code != "NULL" {
+                let mut any_success = false;
+                let mut last_error  = String::new();
+                let mut success_ports: Vec<String> = Vec::new();
+
+                for p in &ports_to_check {
+                    let addr = format!("127.0.0.1:{}", p);
+                    let sock_addr: std::net::SocketAddr = match addr.parse() {
+                        Ok(a) => a, Err(_) => continue,
+                    };
+
+                    match TcpStream::connect_timeout(&sock_addr, Duration::from_millis(800)) {
+                        Ok(mut stream) => {
+                            println!("Successfully connected to Opiumware on port: {}", p);
+                            match send_bytes(&mut stream, &code) {
+                                Ok(_) => {
+                                    any_success = true;
+                                    success_ports.push(p.clone());
+                                }
+                                Err(e) => {
+                                    last_error = format!("Error sending script: {}", e);
+                                    eprintln!("[Potassium] {}", last_error);
+                                }
+                            }
+                            drop(stream);
+                        }
+                        Err(e) => {
+                            last_error = format!("Failed to connect to port {}: {}", p, e);
+                            println!("[Potassium] {}", last_error);
+                        }
+                    }
+                }
+
+                return if any_success {
+                    if success_ports.len() == 1 {
+                        format!("Successfully connected to Opiumware on port: {}", success_ports[0])
+                    } else {
+                        format!("Successfully executed on ports: {}", success_ports.join(", "))
+                    }
+                } else {
+                    format!("Failed to connect on all ports. Last error: {}", last_error)
+                };
             }
 
             let mut connected_port: Option<String> = None;
