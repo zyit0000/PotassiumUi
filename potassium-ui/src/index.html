@@ -12,6 +12,7 @@
             --btn-g1: #1f1f1f; --btn-g2: #1c1c1c; --btn-g3: #1b1b1b;
             --btn-hg1: #2a2a2a; --btn-hg2: #252525; --btn-hg3: #222;
             --toggle-bg: #3a3a3c; --toggle-on: #909090; --toggle-border: #505050; --toggle-on-border: #606060;
+            --toggle-knob-off: #888; --toggle-knob-on: #fff;
             --text-primary: #d0d0d0; --text-secondary: #888; --text-tertiary: #606060;
             --text-btn: #b0b0b0; --text-btn-h: #d4d4d4; --text-title: #ccc; --text-active-tab: #d0d0d0;
             --border-primary: #282828; --border-secondary: #1f1f1f; --border-accent: #303030;
@@ -22,6 +23,14 @@
             --icon-btn: #b0b0b0; --icon-btn-h: #e0e0e0;
             --accent: #a0a0a0; --accent-dim: #555555; --red: #b85555;
             --dd-bg: #1e1e1e; --dd-border: #2e2e2e; --dd-hover: #272727; --dd-text: #c8c8c8;
+            --dot-off: #444; --dot-muted: #555;
+            --badge-bg: rgba(255,255,255,.04);
+            --conn-bg: rgba(160,160,160,.06);
+            --overlay-bg: rgba(0,0,0,.6);
+            --shadow-panel: 0 10px 28px rgba(0,0,0,.55);
+            --shadow-panel-strong: 0 10px 30px rgba(0,0,0,.6);
+            --shadow-modal: 0 14px 42px rgba(0,0,0,.6);
+            --theme-glow: 0 0 10px rgba(160,160,160,.12);
         }
         .light-theme {
             --bg-primary: #fff; --bg-secondary: #f0f0f0; --bg-tertiary: #e0e0e0;
@@ -29,6 +38,7 @@
             --btn-g1: #f0f0f0; --btn-g2: #e8e8e8; --btn-g3: #e0e0e0;
             --btn-hg1: #ddd; --btn-hg2: #d0d0d0; --btn-hg3: #c8c8c8;
             --toggle-bg: #d0d0d0; --toggle-on: #3a3a3a; --toggle-on-border: #222; --toggle-border: #bbb; --theme-border-active: #3a3a3a;
+            --toggle-knob-off: #888; --toggle-knob-on: #fff;
             --text-primary: #222; --text-secondary: #555; --text-tertiary: #666;
             --text-btn: #333; --text-btn-h: #000; --text-title: #333; --text-active-tab: #000;
             --border-primary: #ccc; --border-secondary: #dcdcdc; --border-accent: #b0b0b0;
@@ -37,13 +47,23 @@
             --icon-add-tab: #666; --icon-add-tab-h: #333; --icon-btn: #333; --icon-btn-h: #000;
             --accent: #3a3a3a; --accent-dim: #222222; --red: #b04040;
             --dd-bg: #f5f5f5; --dd-border: #ccc; --dd-hover: #e0e0e0; --dd-text: #222;
+            --dot-off: #999; --dot-muted: #888;
+            --badge-bg: rgba(0,0,0,.06);
+            --conn-bg: rgba(0,0,0,.06);
+            --overlay-bg: rgba(0,0,0,.35);
+            --shadow-panel: 0 10px 28px rgba(0,0,0,.18);
+            --shadow-panel-strong: 0 10px 30px rgba(0,0,0,.20);
+            --shadow-modal: 0 14px 42px rgba(0,0,0,.22);
+            --theme-glow: 0 0 10px rgba(0,0,0,.08);
         }
         *, *::before, *::after { box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: var(--bg-primary); margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; color: var(--text-primary); overflow: hidden; }
         #app-container { width: 100vw; height: 100vh; background: var(--bg-primary); display: flex; flex-direction: column; overflow: hidden; transition: background .3s; }
 
         /* ── TITLE BAR ── */
-        #app-header { background: var(--bg-primary); -webkit-app-region: drag; }
+        /* Only the top title-bar is draggable so tab scrolling/dragging works. */
+        #app-header { background: var(--bg-primary); -webkit-app-region: no-drag; }
+        .title-bar { -webkit-app-region: drag; }
         .title-bar { display: flex; align-items: center; justify-content: space-between; padding: 4px 10px; height: 30px; position: relative; }
         .title { font-size: 13px; font-weight: 500; color: var(--text-title); }
         .top-center-actions { display: flex; align-items: center; gap: 22px; position: absolute; left: 50%; transform: translateX(-50%); -webkit-app-region: no-drag; }
@@ -69,10 +89,15 @@
         #wcbtn-close:hover { stroke: var(--red) !important; }
 
         /* ── TAB BAR ── */
-        #tab-bar { background: var(--bg-primary); display: flex; align-items: center; padding: 0 4px 0 0; height: 34px; overflow: hidden; }
-        #tabs-and-add { display: flex; align-items: flex-end; flex-grow: 1; height: 100%; overflow: hidden; }
-        #tabs-container { display: flex; align-items: flex-end; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; height: 100%; max-width: calc(100% - 30px); }
+        #tab-bar { background: var(--bg-primary); display: flex; align-items: center; padding: 0 4px 0 0; height: 34px; overflow: hidden; -webkit-app-region: no-drag; }
+        #tabs-and-add { display: flex; align-items: flex-end; flex-grow: 1; height: 100%; overflow: hidden; position: relative; }
+        #tabs-container { display: flex; align-items: flex-end; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; height: 100%; max-width: calc(100% - 30px); -webkit-app-region: no-drag; }
         #tabs-container::-webkit-scrollbar { display: none; }
+
+        /* Custom overlay scrollbar (does not affect layout) */
+        #tabs-scrollbar { position: absolute; left: 6px; right: 6px; bottom: 2px; height: 6px; border-radius: 999px; background: var(--bg-accent); pointer-events: auto; opacity: .9; display: none; z-index: 10; }
+        #tabs-scrollbar:hover { opacity: 1; }
+        #tabs-scrollbar-thumb { position: absolute; left: 0; top: 0; height: 100%; border-radius: 999px; background: var(--accent); min-width: 24px; }
         .tab { display: flex; align-items: center; padding: 8px 10px; margin-right: 1px; background: var(--bg-primary); color: var(--text-secondary); font-size: 12px; cursor: pointer; border: none; position: relative; bottom: -1px; max-width: 160px; white-space: nowrap; overflow: hidden; line-height: 1; flex-shrink: 0; }
         .tab.active { background: var(--bg-tertiary); color: var(--text-active-tab); z-index: 1; }
         .tab-icon { margin-right: 6px; width: 14px; height: 14px; fill: currentColor; stroke: none; opacity: 0.7; flex-shrink: 0; }
@@ -92,12 +117,48 @@
         #app-body { flex-grow: 1; display: flex; overflow: hidden; position: relative; }
         #app-body.settings-active, #app-body.theme-active { border-top: none; }
         #editor-view { display: flex; width: 100%; height: 100%; }
-        #main-editor { flex-grow: 1; display: flex; overflow: hidden; background: #1a1a1a; }
+        #main-editor { flex-grow: 1; display: flex; overflow: hidden; background: var(--bg-secondary); }
         #monaco-container { width: 100%; height: 100%; }
-        #right-sidebar { width: 230px; flex-shrink: 0; background: #1d1d1d; border-left: 1px solid var(--border-secondary); height: 100%; box-sizing: border-box; }
+        #right-sidebar { width: 230px; flex-shrink: 0; background: var(--bg-secondary); border-left: 1px solid var(--border-secondary); height: 100%; box-sizing: border-box; display: flex; flex-direction: column; }
+        #right-sidebar.hidden { display: none; }
+        /* Outline sidebar */
+        .outline-header { padding: 10px 12px 8px; font-size: 12px; font-weight: 600; color: var(--text-primary); border-bottom: 1px solid var(--border-secondary); }
+        .outline-list { flex: 1; overflow: auto; padding: 8px 6px 10px; }
+        /* Sidebar scrollbar uses sidebar colors (not accent) */
+        .outline-list { scrollbar-width: thin; scrollbar-color: var(--bg-tertiary) var(--bg-secondary); }
+        .outline-list::-webkit-scrollbar { width: 8px; height: 8px; }
+        .outline-list::-webkit-scrollbar-track { background: var(--bg-secondary); border-radius: 999px; }
+        .outline-list::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 999px; }
+        .outline-list::-webkit-scrollbar-thumb:hover { background: var(--bg-accent); }
+        .outline-group { margin: 8px 6px 6px; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-tertiary); display: flex; align-items: center; gap: 6px; }
+        .outline-group-icon { width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-tertiary); opacity: .9; }
+        .outline-group-icon svg { display: block; }
+        .outline-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; color: var(--text-secondary); font-size: 12px; }
+        .outline-item:hover { background: var(--bg-settings-hover); color: var(--text-primary); }
+        .outline-indent { display: inline-block; width: 0; flex: 0 0 auto; }
+        .outline-kind { width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-tertiary); }
+        .outline-kind svg { display: block; }
+        .outline-kind.k-fn, .outline-kind.k-method, .outline-kind.k-ctor { color: var(--accent); }
+        .outline-kind.k-class { color: #5a8a7a; }
+        .outline-kind.k-interface { color: #557a8a; }
+        .outline-kind.k-namespace, .outline-kind.k-module { color: #557a8a; }
+        .outline-kind.k-enum { color: #8a7a55; }
+        .outline-kind.k-var, .outline-kind.k-prop, .outline-kind.k-field { color: #8a8a8a; }
+        .outline-kind.k-const { color: #8a7a55; }
+        .outline-kind.k-str { color: #7a5a8a; }
+        .outline-kind.k-num { color: #7a8a55; }
+        .outline-kind.k-bool { color: #8a5555; }
+        .outline-kind.k-arr, .outline-kind.k-obj { color: #5a6a8a; }
+        .outline-empty { padding: 10px 10px; color: var(--text-tertiary); font-size: 12px; }
 
         /* ── SETTINGS / THEME VIEWS ── */
         #settings-view, #theme-view { width: 100%; height: 100%; background: var(--bg-primary); padding: 22px 26px; display: none; overflow-y: auto; }
+        /* Themed scrollbars (Settings/Theme views) */
+        #settings-view, #theme-view { scrollbar-width: thin; scrollbar-color: var(--accent) var(--bg-secondary); }
+        #settings-view::-webkit-scrollbar, #theme-view::-webkit-scrollbar { width: 8px; height: 8px; }
+        #settings-view::-webkit-scrollbar-track, #theme-view::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        #settings-view::-webkit-scrollbar-thumb, #theme-view::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 999px; }
+        #settings-view::-webkit-scrollbar-thumb:hover, #theme-view::-webkit-scrollbar-thumb:hover { background: var(--icon-hover); }
         .sec-title { font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--text-tertiary); margin: 0 0 8px; }
         .sec-title:not(:first-child) { margin-top: 26px; }
         .sec-divider { height: 1px; background: var(--border-primary); margin-bottom: 10px; }
@@ -106,14 +167,16 @@
         .setting-label { display: flex; flex-direction: column; gap: 2px; }
         .setting-label .lbl { font-size: 13.5px; font-weight: 500; color: var(--text-primary); }
         .setting-label .desc { font-size: 11.5px; color: var(--text-secondary); }
+        .setting-action-btn { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-accent); border-radius: 6px; padding: 6px 10px; font-size: 12px; font-family: inherit; cursor: pointer; }
+        .setting-action-btn:hover { background: var(--bg-accent); }
 
         /* Toggle */
         .toggle-switch { position: relative; display: inline-block; width: 36px; height: 20px; cursor: pointer; flex-shrink: 0; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; inset: 0; background: var(--toggle-bg); border: 1px solid var(--toggle-border); transition: .3s; border-radius: 20px; }
-        .slider::before { content: ""; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #888; bottom: 2px; left: 2px; transition: transform .3s, background .3s; }
-        input:checked + .slider { background: var(--toggle-on); border-color: var(--toggle-on-border); }
-        input:checked + .slider::before { transform: translateX(16px); background: #fff; }
+        .slider::before { content: ""; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: var(--toggle-knob-off); bottom: 2px; left: 2px; transition: transform .3s, background .3s; }
+        input:checked + .slider { background: var(--accent); border-color: var(--accent-dim); }
+        input:checked + .slider::before { transform: translateX(16px); background: var(--toggle-knob-on); }
 
         /* ── Custom dropdowns (replaces native selects everywhere in settings) ── */
         .cdd-wrap { position: relative; display: inline-block; min-width: 190px; user-select: none; }
@@ -129,7 +192,7 @@
         .cdd-trigger.open { border-color: var(--accent-dim); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
         .cdd-trigger-left { display: flex; align-items: center; gap: 7px; overflow: hidden; }
         .cdd-trigger-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .cdd-trigger-dot { width: 7px; height: 7px; border-radius: 50%; background: #444; flex-shrink: 0; transition: background .3s; }
+        .cdd-trigger-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dot-off); flex-shrink: 0; transition: background .3s; }
         .cdd-trigger-dot.on { background: var(--accent); box-shadow: none; }
         .cdd-caret { width: 10px; height: 10px; stroke: var(--icon-primary); stroke-width: 2.5; fill: none; flex-shrink: 0; transition: transform .2s; }
         .cdd-trigger.open .cdd-caret { transform: rotate(180deg); }
@@ -138,7 +201,7 @@
             background: var(--dd-bg); border: 1px solid var(--dd-border);
             border-top: 1px solid var(--accent-dim);
             border-radius: 0 0 8px 8px;
-            box-shadow: 0 10px 28px rgba(0,0,0,.55);
+            box-shadow: var(--shadow-panel);
             z-index: 8000; display: none; flex-direction: column; overflow: hidden;
         }
         .cdd-panel.open { display: flex; animation: cdd-in .1s ease; }
@@ -154,15 +217,15 @@
         .cdd-item.active { color: var(--accent); font-weight: 600; background: var(--bg-settings-hover); }
         .cdd-item.danger { color: var(--red); }
         .cdd-item-left { display: flex; align-items: center; gap: 8px; }
-        .cdd-item-dot { width: 6px; height: 6px; border-radius: 50%; background: #444; flex-shrink: 0; transition: background .3s; }
+        .cdd-item-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dot-off); flex-shrink: 0; transition: background .3s; }
         .cdd-item-dot.port-open { background: var(--accent); }
-        .cdd-item-badge { font-size: 10px; color: var(--text-tertiary); background: rgba(255,255,255,.04); border-radius: 3px; padding: 1px 5px; white-space: nowrap; }
+        .cdd-item-badge { font-size: 10px; color: var(--text-tertiary); background: var(--badge-bg); border-radius: 3px; padding: 1px 5px; white-space: nowrap; }
         .cdd-item-badge.is-connected { color: var(--accent); }
         .cdd-item-icon { width: 13px; height: 13px; stroke: currentColor; stroke-width: 2; fill: none; flex-shrink: 0; }
 
         /* Status pill */
         .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 20px; font-size: 12px; font-weight: 500; background: var(--bg-tertiary); border: 1px solid var(--border-accent); color: var(--text-secondary); transition: all .3s; white-space: nowrap; }
-        .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: #555; flex-shrink: 0; transition: all .3s; }
+        .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dot-muted); flex-shrink: 0; transition: all .3s; }
         .status-pill.connected { color: var(--accent); border-color: var(--accent-dim); }
         .status-pill.connected .dot { background: var(--accent); box-shadow: none; }
 
@@ -170,9 +233,13 @@
 
         /* Theme */
         .theme-options { display: flex; flex-direction: column; gap: 10px; }
-        .theme-opt { display: flex; align-items: center; padding: 12px; border: 2px solid var(--theme-border); border-radius: 8px; cursor: pointer; transition: border-color .3s, box-shadow .3s; background: #1a1a1a; }
+        .theme-opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 2px solid var(--theme-border); border-radius: 8px; cursor: pointer; transition: border-color .3s, box-shadow .3s; background: var(--bg-secondary); }
         .theme-opt:hover, .theme-opt.active-theme { border-color: var(--theme-border-active); }
-        .theme-opt.active-theme { box-shadow: 0 0 10px rgba(160,160,160,.12); }
+        .theme-opt.active-theme { box-shadow: var(--theme-glow); }
+        .theme-opt-main { display: flex; align-items: center; gap: 14px; min-width: 0; }
+        .theme-opt-right { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+        .theme-remove-btn { background: transparent; border: none; color: var(--text-tertiary); cursor: pointer; padding: 2px 6px; font-size: 16px; line-height: 1; border-radius: 6px; }
+        .theme-remove-btn:hover { background: var(--bg-settings-hover); color: var(--text-primary); }
         .theme-preview { width: 80px; height: 50px; border-radius: 4px; margin-right: 14px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-primary); }
         .tp-dark .ph { background: #333; height: 15px; } .tp-dark .pb { background: #444; flex-grow: 1; }
         .tp-light .ph { background: #eee; height: 15px; } .tp-light .pb { background: #fff; flex-grow: 1; }
@@ -198,16 +265,16 @@
         #attach-caret svg { width: 11px !important; height: 11px !important; margin: 0 !important; stroke: var(--icon-btn); stroke-width: 2.5; fill: none; }
 
         /* Dropdown */
-        #attach-dd { position: absolute; bottom: calc(100% + 6px); left: 0; background: var(--dd-bg); border: 1px solid var(--dd-border); border-radius: 8px; min-width: 215px; box-shadow: 0 10px 30px rgba(0,0,0,.6); z-index: 9000; overflow: hidden; display: none; flex-direction: column; }
+        #attach-dd { position: absolute; bottom: calc(100% + 6px); left: 0; background: var(--dd-bg); border: 1px solid var(--dd-border); border-radius: 8px; min-width: 215px; box-shadow: var(--shadow-panel-strong); z-index: 9000; overflow: hidden; display: none; flex-direction: column; }
         #attach-dd.open { display: flex; animation: dropup .12s ease; }
         @keyframes dropup { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
         .dd-section-lbl { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-tertiary); padding: 10px 12px 4px; }
         .dd-port { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; cursor: pointer; transition: background .1s; }
         .dd-port:hover { background: var(--dd-hover); }
         .dd-port-left { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--dd-text); }
-        .dd-port-dot { width: 6px; height: 6px; border-radius: 50%; background: #444; flex-shrink: 0; transition: background .3s; }
+        .dd-port-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dot-off); flex-shrink: 0; transition: background .3s; }
         .dd-port.open .dd-port-dot { background: var(--accent); }
-        .dd-port.connected-port { background: rgba(160,160,160,.06); }
+        .dd-port.connected-port { background: var(--conn-bg); }
         .dd-port.connected-port .dd-port-left { color: var(--accent); font-weight: 600; }
         .dd-port-badge { font-size: 10px; color: var(--text-tertiary); background: var(--bg-tertiary); border-radius: 3px; padding: 1px 5px; }
         .dd-divider { height: 1px; background: var(--dd-border); margin: 3px 0; }
@@ -218,8 +285,8 @@
         .dd-action.danger svg { stroke: var(--red); }
 
         /* ── MODAL ── */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 99999; }
-        .modal-box { background: var(--bg-secondary); border: 1px solid var(--border-accent); border-radius: 10px; padding: 22px 26px; min-width: 260px; max-width: 400px; box-shadow: 0 14px 42px rgba(0,0,0,.6); display: flex; flex-direction: column; gap: 14px; }
+        .modal-overlay { position: fixed; inset: 0; background: var(--overlay-bg); display: flex; align-items: center; justify-content: center; z-index: 99999; }
+        .modal-box { background: var(--bg-secondary); border: 1px solid var(--border-accent); border-radius: 10px; padding: 22px 26px; min-width: 260px; max-width: 400px; box-shadow: var(--shadow-modal); display: flex; flex-direction: column; gap: 14px; }
         .modal-box p { margin: 0; color: var(--text-primary); font-size: 13px; line-height: 1.55; }
         .modal-box button { align-self: flex-end; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-accent); border-radius: 5px; padding: 7px 20px; cursor: pointer; font-size: 13px; font-family: inherit; }
         .modal-box button:hover { background: var(--bg-accent); }
@@ -258,6 +325,7 @@
         <div id="tab-bar">
             <div id="tabs-and-add">
                 <div id="tabs-container"></div>
+                <div id="tabs-scrollbar"><div id="tabs-scrollbar-thumb"></div></div>
                 <button id="add-tab-btn" title="New tab">+</button>
             </div>
             <div id="tab-bar-search-container">
@@ -382,6 +450,26 @@
                 <label class="toggle-switch"><input type="checkbox" id="tog-linenums" checked><span class="slider"></span></label>
             </div>
 
+            <div class="setting-row">
+                <div class="setting-label"><span class="lbl">Smooth Typing</span><span class="desc">Adds smooth cursor/scroll animation in the editor</span></div>
+                <label class="toggle-switch"><input type="checkbox" id="tog-smooth-typing" checked><span class="slider"></span></label>
+            </div>
+
+            <div class="setting-row">
+                <div class="setting-label"><span class="lbl">Outline Sidebar</span><span class="desc">Show an outline of symbols in the current file</span></div>
+                <label class="toggle-switch"><input type="checkbox" id="tog-outline-sidebar"><span class="slider"></span></label>
+            </div>
+
+            <div class="setting-row">
+                <div class="setting-label"><span class="lbl">Auto Save Tabs</span><span class="desc">Restore your tabs automatically on next launch</span></div>
+                <label class="toggle-switch"><input type="checkbox" id="tog-autosave-tabs" checked><span class="slider"></span></label>
+            </div>
+
+            <div class="setting-row">
+                <div class="setting-label"><span class="lbl">Functions List</span><span class="desc">Open built-in functions.txt in a new tab</span></div>
+                <button class="setting-action-btn" id="btn-open-functions">Open</button>
+            </div>
+
             <p class="sec-title">Window</p>
             <div class="sec-divider"></div>
 
@@ -390,11 +478,35 @@
                 <label class="toggle-switch"><input type="checkbox" id="tog-aot"><span class="slider"></span></label>
             </div>
 
+            <div class="setting-row">
+                <div class="setting-label"><span class="lbl">Custom Theme</span><span class="desc">Create, import, and manage custom themes</span></div>
+                <label class="toggle-switch"><input type="checkbox" id="tog-custom-theme"><span class="slider"></span></label>
+            </div>
+
+            <div id="custom-theme-settings" style="display:none;">
+                <div class="setting-row">
+                    <div class="setting-label"><span class="lbl">Template Theme</span><span class="desc">Opens a template file that explains how themes work</span></div>
+                    <button class="setting-action-btn" id="btn-theme-template">Open</button>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-label"><span class="lbl">Import Theme</span><span class="desc">Import a theme JSON from your computer</span></div>
+                    <button class="setting-action-btn" id="btn-theme-import">Import</button>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-label"><span class="lbl">Add Theme</span><span class="desc">Add a theme from the current tab (must be valid JSON)</span></div>
+                    <button class="setting-action-btn" id="btn-theme-add">Add</button>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-label"><span class="lbl">Auto Replace</span><span class="desc">Automatically replace a theme if another theme uses the same name</span></div>
+                    <label class="toggle-switch"><input type="checkbox" id="tog-theme-auto-replace"><span class="slider"></span></label>
+                </div>
+            </div>
+
             <p class="sec-title">Execution API</p>
             <div class="sec-divider"></div>
 
             <div class="setting-row">
-                <div class="setting-label"><span class="lbl">API Backend</span><span class="desc">Choose which execution API to use</span></div>
+            <div class="setting-label"><span class="lbl">API Backend</span><span class="desc">Choose which execution API to use (for testing)</span></div>
                 <div class="cdd-wrap" id="cdd-api">
                     <div class="cdd-trigger" id="cdd-api-trigger">
                         <div class="cdd-trigger-left">
@@ -440,16 +552,7 @@
         <div id="theme-view">
             <p class="sec-title">Appearance</p>
             <div class="sec-divider"></div>
-            <div class="theme-options">
-                <div class="theme-opt" id="theme-dark">
-                    <div class="theme-preview tp-dark"><div class="ph"></div><div class="pb"></div></div>
-                    <span class="theme-lbl">Default Dark</span>
-                </div>
-                <div class="theme-opt" id="theme-light">
-                    <div class="theme-preview tp-light"><div class="ph"></div><div class="pb"></div></div>
-                    <span class="theme-lbl">Light Theme</span>
-                </div>
-            </div>
+            <div class="theme-options" id="theme-options"></div>
         </div>
     </div>
 
@@ -527,12 +630,98 @@ let apiBackend = 'rust';    // 'rust' | 'js'
 let notifExecute = true;    // show modal after execute
 let notifAttach  = true;    // show modal after attach/detach
 let themeName    = 'dark';  // 'dark' | 'light'
+let smoothTyping = true;
+let outlineSidebar = false;
+let autosaveTabs = true;
+let customThemeEnabled = false;
+let autoReplaceThemeOnConflict = false;
 let settingsApplying = false;
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // SETTINGS (persistence)
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const SETTINGS_KEY = 'potassium.settings.v1';
+const CUSTOM_THEMES_KEY = 'potassium.customThemes.v1';
+const TABS_KEY = 'potassium.tabs.v1';
+
+let customThemes = [];
+let appliedCustomVarNames = [];
+let saveTabsTimer = null;
+
+function loadCustomThemes() {
+    try {
+        const raw = localStorage.getItem(CUSTOM_THEMES_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter(t =>
+            t && typeof t === 'object' &&
+            typeof t.id === 'string' &&
+            typeof t.name === 'string' &&
+            t.vars && typeof t.vars === 'object' &&
+            (t.monacoTheme == null || (t.monacoTheme && typeof t.monacoTheme === 'object'))
+        );
+    } catch(_) { return []; }
+}
+function saveCustomThemes() {
+    try { localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(customThemes)); } catch(_) {}
+}
+
+function queueSaveTabs() {
+    if (!autosaveTabs) return;
+    clearTimeout(saveTabsTimer);
+    saveTabsTimer = setTimeout(() => {
+        saveTabsTimer = null;
+        saveTabsNow();
+    }, 250);
+}
+function saveTabsNow() {
+    if (!autosaveTabs) return;
+    try {
+        const data = {
+            version: 1,
+            tabCounter,
+            activeTabId,
+            tabs: tabs.map(t => ({ id: t.id, name: t.name, content: t.content })),
+        };
+        localStorage.setItem(TABS_KEY, JSON.stringify(data));
+    } catch(_) {}
+}
+function clearSavedTabs() {
+    try { localStorage.removeItem(TABS_KEY); } catch(_) {}
+}
+function restoreTabsOrDefault() {
+    if (autosaveTabs) {
+        try {
+            const raw = localStorage.getItem(TABS_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && Array.isArray(parsed.tabs) && parsed.tabs.length) {
+                    const restored = parsed.tabs
+                        .filter(t => t && typeof t.id === 'string' && typeof t.name === 'string')
+                        .map(t => ({ id: t.id, name: t.name, content: String(t.content ?? '') }));
+                    if (restored.length) {
+                        tabs = restored;
+                        tabCounter = Number(parsed.tabCounter || restored.length) || restored.length;
+                        activeTabId = typeof parsed.activeTabId === 'string' ? parsed.activeTabId : restored[0].id;
+                        if (!tabs.some(t => t.id === activeTabId)) activeTabId = tabs[0].id;
+                        renderTabs();
+                        const active = tabs.find(t => t.id === activeTabId);
+                        if (active && monacoEditor) monacoEditor.setValue(active.content || '');
+                        requestAnimationFrame(syncTabsScrollbar);
+                        updateOutlineSidebarDebounced();
+                        return;
+                    }
+                }
+            }
+        } catch(_) {}
+    }
+
+    tabs = [];
+    activeTabId = null;
+    tabCounter = 0;
+    addTab(null, initialContent);
+}
 
 function loadSettings() {
     try {
@@ -552,6 +741,11 @@ function saveSettings() {
         notifExecute,
         notifAttach,
         themeName,
+        smoothTyping,
+        outlineSidebar,
+        autosaveTabs,
+        customThemeEnabled,
+        autoReplaceThemeOnConflict,
         autoAttach:  !!document.getElementById('tog-auto-attach')?.checked,
         minimap:     !!document.getElementById('tog-minimap')?.checked,
         lineNums:    !!document.getElementById('tog-linenums')?.checked,
@@ -569,7 +763,12 @@ function applySettings(s) {
         if (s?.apiBackend === 'js' || s?.apiBackend === 'rust') apiBackend = s.apiBackend;
         if (typeof s?.notifExecute === 'boolean') notifExecute = s.notifExecute;
         if (typeof s?.notifAttach === 'boolean')  notifAttach  = s.notifAttach;
-        if (s?.themeName === 'light' || s?.themeName === 'dark') themeName = s.themeName;
+        if (typeof s?.themeName === 'string') themeName = s.themeName;
+        if (typeof s?.smoothTyping === 'boolean') smoothTyping = s.smoothTyping;
+        if (typeof s?.outlineSidebar === 'boolean') outlineSidebar = s.outlineSidebar;
+        if (typeof s?.autosaveTabs === 'boolean') autosaveTabs = s.autosaveTabs;
+        if (typeof s?.customThemeEnabled === 'boolean') customThemeEnabled = s.customThemeEnabled;
+        if (typeof s?.autoReplaceThemeOnConflict === 'boolean') autoReplaceThemeOnConflict = s.autoReplaceThemeOnConflict;
 
         // Theme
         applyTheme(themeName);
@@ -578,14 +777,25 @@ function applySettings(s) {
         const autoAttachEl = document.getElementById('tog-auto-attach');
         const minimapEl    = document.getElementById('tog-minimap');
         const lineNumsEl   = document.getElementById('tog-linenums');
+        const smoothEl     = document.getElementById('tog-smooth-typing');
+        const outlineEl    = document.getElementById('tog-outline-sidebar');
+        const autosaveEl   = document.getElementById('tog-autosave-tabs');
         const aotEl        = document.getElementById('tog-aot');
+        const customThemeEl = document.getElementById('tog-custom-theme');
+        const customThemeSettingsEl = document.getElementById('custom-theme-settings');
+        const autoReplaceEl = document.getElementById('tog-theme-auto-replace');
         const neEl         = document.getElementById('tog-notif-execute');
         const naEl         = document.getElementById('tog-notif-attach');
 
         if (autoAttachEl && typeof s?.autoAttach === 'boolean') autoAttachEl.checked = s.autoAttach;
         if (minimapEl    && typeof s?.minimap === 'boolean')    minimapEl.checked    = s.minimap;
         if (lineNumsEl   && typeof s?.lineNums === 'boolean')   lineNumsEl.checked   = s.lineNums;
+        if (smoothEl     && typeof s?.smoothTyping === 'boolean') smoothEl.checked   = s.smoothTyping;
+        if (outlineEl    && typeof s?.outlineSidebar === 'boolean') outlineEl.checked = s.outlineSidebar;
+        if (autosaveEl   && typeof s?.autosaveTabs === 'boolean') autosaveEl.checked = s.autosaveTabs;
         if (aotEl        && typeof s?.alwaysOnTop === 'boolean') aotEl.checked       = s.alwaysOnTop;
+        if (customThemeEl && typeof s?.customThemeEnabled === 'boolean') customThemeEl.checked = s.customThemeEnabled;
+        if (autoReplaceEl && typeof s?.autoReplaceThemeOnConflict === 'boolean') autoReplaceEl.checked = s.autoReplaceThemeOnConflict;
         if (neEl) neEl.checked = !!notifExecute;
         if (naEl) naEl.checked = !!notifAttach;
 
@@ -593,7 +803,18 @@ function applySettings(s) {
         monacoEditor?.updateOptions({
             minimap: { enabled: !!minimapEl?.checked },
             lineNumbers: !!lineNumsEl?.checked ? 'on' : 'off',
+            smoothScrolling: !!smoothEl?.checked,
+            cursorBlinking: !!smoothEl?.checked ? 'smooth' : 'blink',
+            cursorSmoothCaretAnimation: !!smoothEl?.checked ? 'on' : 'off',
         });
+        smoothTyping = !!smoothEl?.checked;
+        outlineSidebar = !!outlineEl?.checked;
+        autosaveTabs = !!autosaveEl?.checked;
+        customThemeEnabled = !!customThemeEl?.checked;
+        autoReplaceThemeOnConflict = !!autoReplaceEl?.checked;
+        if (customThemeSettingsEl) customThemeSettingsEl.style.display = customThemeEnabled ? 'block' : 'none';
+        updateOutlineSidebar();
+        renderThemeOptions();
 
         // Always on top (best-effort)
         tauriInvoke('set_always_on_top', { value: !!aotEl?.checked }).catch(() => {});
@@ -718,9 +939,494 @@ function toOpiumwarePacket(editorCode) {
     return 'OpiumwareScript ' + code;
 }
 
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// FUNCTIONS.TXT â€” completions + hover docs (best-effort)
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+let functionsTxtCache = null;
+let functionNames = [];
+let functionDocs = new Map(); // name -> doc string
+let functionProvidersRegistered = false;
+
+async function fetchFunctionsTxt() {
+    if (functionsTxtCache != null) return functionsTxtCache;
+    try {
+        const res = await fetch('functions.txt', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        functionsTxtCache = await res.text();
+        return functionsTxtCache;
+    } catch (e) {
+        console.warn('[functions.txt] load failed:', e);
+        functionsTxtCache = '';
+        return '';
+    }
+}
+
+function parseFunctionsTxt(text) {
+    const names = [];
+    const docs = new Map();
+
+    const lines = String(text ?? '').split(/\\r?\\n/);
+    for (const raw of lines) {
+        const line = raw.trim();
+        if (!line) continue;
+        if (line.startsWith('#') || line.startsWith('//')) continue;
+
+        // Supported formats (optional docs):
+        //   name
+        //   name - description
+        //   name: description
+        //   name|description
+        const m = line.match(/^([A-Za-z_][A-Za-z0-9_\\.]*)\\s*(?:[-:|]\\s*(.+))?$/);
+        if (!m) continue;
+        const name = m[1];
+        const doc = (m[2] || '').trim();
+
+        names.push(name);
+        if (doc) docs.set(name, doc);
+    }
+
+    const uniq = [...new Set(names)].sort((a, b) => a.localeCompare(b));
+    return { names: uniq, docs };
+}
+
+async function ensureFunctionsIndexLoaded() {
+    if (functionNames.length) return;
+    const text = await fetchFunctionsTxt();
+    const parsed = parseFunctionsTxt(text);
+    functionNames = parsed.names;
+    functionDocs = parsed.docs;
+}
+
+function registerFunctionsIntellisense() {
+    if (functionProvidersRegistered) return;
+    if (!window.monaco) return;
+
+    functionProvidersRegistered = true;
+
+    monaco.languages.registerCompletionItemProvider('lua', {
+        triggerCharacters: ['_', '.'],
+        provideCompletionItems: async (model, position) => {
+            await ensureFunctionsIndexLoaded();
+
+            const word = model.getWordUntilPosition(position);
+            const query = (word?.word || '').toLowerCase();
+            const range = new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn);
+
+            let matches = functionNames;
+            if (query) matches = functionNames.filter(n => n.toLowerCase().includes(query));
+
+            if (!query) matches = matches.slice(0, 200);
+            else matches = matches.slice(0, 400);
+
+            const suggestions = matches.map(name => {
+                const doc = functionDocs.get(name) || 'No documentation found in functions.txt for this item.';
+                return {
+                    label: name,
+                    kind: monaco.languages.CompletionItemKind.Function,
+                    insertText: name,
+                    range,
+                    detail: 'functions.txt',
+                    documentation: { value: `**${name}**\\n\\n${doc}` },
+                };
+            });
+
+            return { suggestions };
+        },
+    });
+
+    monaco.languages.registerHoverProvider('lua', {
+        provideHover: async (model, position) => {
+            await ensureFunctionsIndexLoaded();
+            const w = model.getWordAtPosition(position);
+            if (!w?.word) return null;
+
+            const name = w.word;
+            if (!functionNames.includes(name)) return null;
+
+            const doc = functionDocs.get(name) || 'No documentation found in functions.txt for this item.';
+            return {
+                range: new monaco.Range(position.lineNumber, w.startColumn, position.lineNumber, w.endColumn),
+                contents: [{ value: `**${name}**\\n\\n${doc}` }],
+            };
+        },
+    });
+}
+
 // ══════════════════════════════
 // CONNECTION STATE
 // ══════════════════════════════
+// OUTLINE SIDEBAR (best-effort Lua outline)
+let rightSidebarEl = null;
+let outlineUpdateRaf = 0;
+let outlineHeaderEl = null;
+let outlineListEl = null;
+let outlineSearchQuery = '';
+
+function updateOutlineSidebarDebounced() {
+    if (!outlineSidebar) return;
+    if (outlineUpdateRaf) cancelAnimationFrame(outlineUpdateRaf);
+    outlineUpdateRaf = requestAnimationFrame(() => {
+        outlineUpdateRaf = 0;
+        updateOutlineSidebar();
+    });
+}
+
+function confirmModal(msg, confirmText = 'Confirm', denyText = 'Cancel') {
+    return new Promise(resolve => {
+        document.querySelector('.modal-overlay')?.remove();
+        const ov = document.createElement('div'); ov.className = 'modal-overlay';
+        const box = document.createElement('div'); box.className = 'modal-box';
+        const p = document.createElement('p'); p.textContent = msg;
+
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.gap = '8px';
+        row.style.justifyContent = 'flex-end';
+
+        const deny = document.createElement('button'); deny.textContent = denyText;
+        const ok = document.createElement('button'); ok.textContent = confirmText;
+
+        const close = (val) => { ov.remove(); resolve(val); };
+        deny.onclick = () => close(false);
+        ok.onclick = () => close(true);
+
+        ov.onclick = e => { if (e.target === ov) close(false); };
+        document.addEventListener('keydown', function onKey(e) {
+            if (e.key === 'Escape') { document.removeEventListener('keydown', onKey); close(false); }
+        });
+
+        row.append(deny, ok);
+        box.append(p, row);
+        ov.appendChild(box);
+        document.body.appendChild(ov);
+        ok.focus();
+    });
+}
+
+function clearOutlineSidebarUi() {
+    outlineHeaderEl = null;
+    outlineListEl = null;
+    if (rightSidebarEl) rightSidebarEl.innerHTML = '';
+}
+
+function ensureOutlineSidebarUi() {
+    if (!rightSidebarEl) return;
+    if (outlineHeaderEl && outlineListEl) return;
+
+    rightSidebarEl.innerHTML = '';
+
+    outlineHeaderEl = document.createElement('div');
+    outlineHeaderEl.className = 'outline-header';
+    outlineHeaderEl.textContent = 'Outline View';
+    rightSidebarEl.appendChild(outlineHeaderEl);
+
+    outlineListEl = document.createElement('div');
+    outlineListEl.className = 'outline-list';
+    rightSidebarEl.appendChild(outlineListEl);
+}
+
+function functionKind(name) {
+    const raw = String(name || '');
+    const lower = raw.toLowerCase();
+    const last = lower.split(/[.:]/).filter(Boolean).pop() || lower;
+    if (raw.includes(':')) return 'method';
+    if (last === 'new' || last === 'init' || last === 'constructor') return 'ctor';
+    return 'fn';
+}
+
+function classifyLiteral(rhsRaw) {
+    const rhs = String(rhsRaw || '').trim();
+    if (!rhs) return null;
+    if (rhs.startsWith('"') || rhs.startsWith("'")) return 'str';
+    if (/^-?\d+(?:\.\d+)?\b/.test(rhs)) return 'num';
+    if (/^(?:true|false)\b/i.test(rhs)) return 'bool';
+    if (rhs.startsWith('{')) {
+        const after = rhs.slice(1).trimStart();
+        if (!after || after.startsWith('}')) return 'obj';
+        if (after.startsWith('[')) return 'obj';
+        if (/^[A-Za-z_][A-Za-z0-9_]*\s*=/.test(after)) return 'obj';
+        return 'arr';
+    }
+    return null;
+}
+
+function classifyTableSnippet(name, snippet, classHints) {
+    const rawName = String(name || '');
+    const short = rawName.split('.').pop() || rawName;
+
+    if (rawName.includes('.')) return 'namespace';
+    if (/^I[A-Z]/.test(short) && !classHints.has(short)) return 'interface';
+    if (/enum$/i.test(short) || /\bENUM\b/.test(rawName)) return 'enum';
+    if (/module/i.test(rawName)) return 'module';
+    if (classHints.has(short)) return 'class';
+
+    const upperKeys = (snippet.match(/\b([A-Z][A-Z0-9_]*)\s*=/g) || []).length;
+    if (upperKeys >= 3) return 'enum';
+
+    const m = snippet.match(/=\s*{\s*([\s\S]{0,60})/);
+    const after = ((m && m[1]) || '').trimStart();
+    if (!after || after.startsWith('}')) return 'obj';
+    if (after.startsWith('[')) return 'obj';
+    if (/^[A-Za-z_][A-Za-z0-9_]*\s*=/.test(after)) return 'obj';
+    return 'arr';
+}
+
+function outlineIconSvg(kind) {
+    // Inline Lucide-style icons (no external runtime needed).
+    const common = 'viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"';
+    switch (kind) {
+        case 'fn':
+        case 'method':
+        case 'ctor':
+            return `<svg ${common}><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>`; // code
+        case 'class':
+            return `<svg ${common}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>`; // box
+        case 'interface':
+            return `<svg ${common}><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>`; // layers
+        case 'namespace':
+        case 'module':
+            return `<svg ${common}><path d="M3 7h6l2 2h10v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"></path></svg>`; // folder
+        case 'enum':
+            return `<svg ${common}><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>`; // list
+        case 'const':
+            return `<svg ${common}><path d="M20.59 13.41 11 3H4v7l9.59 9.59a2 2 0 0 0 2.82 0l4.18-4.18a2 2 0 0 0 0-2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`; // tag
+        case 'var':
+        case 'prop':
+        case 'field':
+            return `<svg ${common}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="2"></circle></svg>`; // circle-dot
+        case 'str':
+            return `<svg ${common}><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>`; // type
+        case 'num':
+            return `<svg ${common}><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>`; // hash
+        case 'bool':
+            return `<svg ${common}><rect x="1" y="5" width="22" height="14" rx="7" ry="7"></rect><circle cx="8" cy="12" r="3"></circle></svg>`; // toggle-left
+        case 'arr':
+            return `<svg ${common}><path d="M8 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h2"></path><path d="M16 4h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-2"></path></svg>`; // brackets
+        case 'obj':
+            return `<svg ${common}><path d="M8 3H7a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2 2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1"></path><path d="M16 21h1a2 2 0 0 0 2-2v-4a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"></path></svg>`; // braces
+        default:
+            return `<svg ${common}><circle cx="12" cy="12" r="1"></circle></svg>`;
+    }
+}
+
+function outlineGroupIconSvg(groupTitle) {
+    switch (groupTitle) {
+        case 'Structural Elements': return outlineIconSvg('module');
+        case 'Data Elements': return outlineIconSvg('enum');
+        case 'Logic Elements': return outlineIconSvg('fn');
+        case 'Values': return outlineIconSvg('obj');
+        default: return outlineIconSvg('node');
+    }
+}
+
+function parseLuaOutline(model) {
+    const text = model.getValue();
+    const items = [];
+    const add = (name, kind, idx, offset = 0) => {
+        try {
+            const pos = model.getPositionAt(idx + offset);
+            items.push({ name, kind, pos });
+        } catch(_) {}
+    };
+
+    const seen = new Set();
+
+    // Pre-scan for class hints
+    const classHints = new Set();
+    const idxRe = /^\s*([A-Za-z_][A-Za-z0-9_]*)\.__index\s*=\s*\1\b/gm;
+    let ix;
+    while ((ix = idxRe.exec(text)) !== null) classHints.add(ix[1]);
+    const smRe = /\bsetmetatable\s*\(\s*[^,]+,\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)/gm;
+    let sm;
+    while ((sm = smRe.exec(text)) !== null) classHints.add(sm[1]);
+
+    // Logic elements: functions / methods / ctors
+    const fnDecl = /^\s*(?:local\s+)?function\s+([A-Za-z_][A-Za-z0-9_:.]*)\s*\(/gm;
+    const fnAssign = /^\s*(?:local\s+)?([A-Za-z_][A-Za-z0-9_:.]*)\s*=\s*function\s*\(/gm;
+    for (const re of [fnDecl, fnAssign]) {
+        let m;
+        while ((m = re.exec(text)) !== null) {
+            const name = m[1];
+            if (!name || seen.has(name)) continue;
+            seen.add(name);
+            add(name, functionKind(name), m.index, m[0].indexOf(name));
+        }
+    }
+
+    // Structural: modules
+    const reqAssign = /^\s*(?:local\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*require\s*\(/gm;
+    let rq;
+    while ((rq = reqAssign.exec(text)) !== null) {
+        const name = rq[1];
+        if (!name || seen.has(name)) continue;
+        seen.add(name);
+        add(name, 'module', rq.index, rq[0].indexOf(name));
+    }
+
+    // Structural: tables (namespaces / classes / enums / objects / arrays)
+    const tableAssign = /^\s*(?:local\s+)?([A-Za-z_][A-Za-z0-9_:.]*)\s*=\s*{\s*/gm;
+    let ta;
+    while ((ta = tableAssign.exec(text)) !== null) {
+        const name = ta[1];
+        if (!name || seen.has(name)) continue;
+        const snippet = text.slice(ta.index, Math.min(text.length, ta.index + 700));
+        const kind = classifyTableSnippet(name, snippet, classHints);
+        seen.add(name);
+        add(name, kind, ta.index, ta[0].indexOf(name));
+    }
+
+    // Values: local literals
+    const localValue = /^\s*local\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^\r\n]+)/gm;
+    let vm;
+    while ((vm = localValue.exec(text)) !== null) {
+        const name = vm[1];
+        const rhs = vm[2];
+        if (!name || seen.has(name)) continue;
+        const lit = classifyLiteral(rhs);
+        if (!lit) continue;
+        const isConstName = /^[A-Z0-9_]+$/.test(name);
+        seen.add(name);
+        add(name, isConstName ? 'const' : lit, vm.index, vm[0].indexOf(name));
+    }
+
+    // Data: local decls (variables / constants)
+    const localDecl = /^\s*local\s+([A-Za-z_][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z_][A-Za-z0-9_]*)*)/gm;
+    let lm;
+    while ((lm = localDecl.exec(text)) !== null) {
+        const parts = lm[1].split(',').map(s => s.trim()).filter(Boolean);
+        for (const p of parts) {
+            if (!p || seen.has(p)) continue;
+            seen.add(p);
+            const kind = /^[A-Z0-9_]+$/.test(p) ? 'const' : 'var';
+            add(p, kind, lm.index, lm[0].indexOf(p));
+        }
+    }
+
+    // Data: properties / fields (dotted assigns)
+    const propAssign = /^\s*([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+)\s*=\s*(?!function\b)/gm;
+    let pm;
+    while ((pm = propAssign.exec(text)) !== null) {
+        const name = pm[1];
+        if (!name || seen.has(name)) continue;
+        seen.add(name);
+        add(name, 'prop', pm.index, pm[0].indexOf(name));
+    }
+
+    items.sort((a, b) => (a.pos.lineNumber - b.pos.lineNumber) || (a.pos.column - b.pos.column));
+    return items;
+}
+
+function buildNameTree(items) {
+    const root = { children: new Map(), item: null, order: Number.POSITIVE_INFINITY };
+    const splitName = (name) => name.replace(/:/g, '.').split('.').filter(Boolean);
+
+    for (const it of items) {
+        const order = (it?.pos?.lineNumber || 0) * 1000000 + (it?.pos?.column || 0);
+        const parts = splitName(it.name);
+        let node = root;
+        if (order < node.order) node.order = order;
+        for (const part of parts) {
+            if (!node.children.has(part)) node.children.set(part, { children: new Map(), item: null, key: part, order: Number.POSITIVE_INFINITY });
+            node = node.children.get(part);
+            if (order < node.order) node.order = order;
+        }
+        node.item = it;
+    }
+
+    return root;
+}
+
+function renderTree(listEl, node, depth = 0) {
+    const children = [...node.children.entries()]
+        .sort((a, b) => (a[1].order - b[1].order) || a[0].localeCompare(b[0]));
+    for (const [key, child] of children) {
+
+        const row = document.createElement('div');
+        row.className = 'outline-item';
+
+        const indent = document.createElement('span');
+        indent.className = 'outline-indent';
+        indent.style.marginLeft = (depth * 10) + 'px';
+
+        const kind = document.createElement('span');
+        kind.className = 'outline-kind k-' + (child.item?.kind || 'node');
+        kind.innerHTML = outlineIconSvg(child.item?.kind || 'node');
+
+        const label = document.createElement('span');
+        label.textContent = key;
+
+        row.append(indent, kind, label);
+
+        if (child.item) {
+            row.addEventListener('click', () => {
+                if (!monacoEditor) return;
+                monacoEditor.setPosition(child.item.pos);
+                const scrollType = (window.monaco && window.monaco.editor && window.monaco.editor.ScrollType && window.monaco.editor.ScrollType.Smooth) || undefined;
+                monacoEditor.revealPositionInCenter(child.item.pos, scrollType);
+                monacoEditor.focus();
+            });
+        } else {
+            row.style.opacity = '0.85';
+            row.style.cursor = 'default';
+        }
+
+        listEl.appendChild(row);
+        renderTree(listEl, child, depth + 1);
+    }
+}
+
+function updateOutlineSidebar() {
+    if (!rightSidebarEl) return;
+    const searchEl = document.getElementById('tab-bar-search-input');
+    if (searchEl) searchEl.placeholder = outlineSidebar ? 'Search outline…' : '';
+
+    if (!outlineSidebar) { clearOutlineSidebarUi(); return; }
+    ensureOutlineSidebarUi();
+
+    // Search uses the existing top search bar (no dedicated outline search box)
+    outlineSearchQuery = document.getElementById('tab-bar-search-input')?.value || '';
+
+    const model = monacoEditor?.getModel();
+    if (!model) return;
+
+    const all = parseLuaOutline(model);
+    const q = String(outlineSearchQuery || '').trim().toLowerCase();
+    const items = q ? all.filter(it => String(it.name).toLowerCase().includes(q)) : all;
+
+    outlineListEl.innerHTML = '';
+
+    if (!items.length) {
+        const empty = document.createElement('div');
+        empty.className = 'outline-empty';
+        empty.textContent = q ? 'No matches.' : 'No symbols found.';
+        outlineListEl.appendChild(empty);
+        return;
+    }
+
+    const structural = items.filter(i => ['class','interface','namespace','module'].includes(i.kind));
+    const data = items.filter(i => ['var','const','prop','field','enum'].includes(i.kind));
+    const logic = items.filter(i => ['fn','method','ctor'].includes(i.kind));
+    const values = items.filter(i => ['str','num','bool','arr','obj'].includes(i.kind));
+
+    const addGroup = (title, groupItems) => {
+        if (!groupItems.length) return;
+        const gl = document.createElement('div');
+        gl.className = 'outline-group';
+        const icon = document.createElement('span');
+        icon.className = 'outline-group-icon';
+        icon.innerHTML = outlineGroupIconSvg(title);
+        gl.append(icon, document.createTextNode(title));
+        outlineListEl.appendChild(gl);
+        renderTree(outlineListEl, buildNameTree(groupItems), 0);
+    };
+
+    addGroup('Structural Elements', structural);
+    addGroup('Data Elements', data);
+    addGroup('Logic Elements', logic);
+    addGroup('Values', values);
+
+}
+
 function setConnectedPort(port) {
     connectedPort = port;
     const pill = document.getElementById('status-pill');
@@ -1014,6 +1720,36 @@ function setupAttachCdd() {
 // TABS
 // ══════════════════════════════
 const tabsContainer = document.getElementById('tabs-container');
+const tabsScrollbar = document.getElementById('tabs-scrollbar');
+const tabsScrollbarThumb = document.getElementById('tabs-scrollbar-thumb');
+let tabsScrollbarDragging = false;
+let tabsScrollbarDragStartX = 0;
+let tabsScrollbarDragStartScrollLeft = 0;
+
+function syncTabsScrollbar() {
+    if (!tabsContainer || !tabsScrollbar || !tabsScrollbarThumb) return;
+
+    const scrollW = tabsContainer.scrollWidth;
+    const clientW = tabsContainer.clientWidth;
+    const maxScroll = Math.max(0, scrollW - clientW);
+
+    if (maxScroll <= 0) {
+        tabsScrollbar.style.display = 'none';
+        return;
+    }
+
+    tabsScrollbar.style.display = 'block';
+    const trackW = tabsScrollbar.clientWidth;
+    if (trackW <= 0) return;
+
+    const thumbW = Math.max(24, Math.floor((clientW / scrollW) * trackW));
+    const maxThumbX = Math.max(0, trackW - thumbW);
+    const ratio = maxScroll === 0 ? 0 : (tabsContainer.scrollLeft / maxScroll);
+    const thumbX = Math.round(ratio * maxThumbX);
+
+    tabsScrollbarThumb.style.width = thumbW + 'px';
+    tabsScrollbarThumb.style.transform = `translateX(${thumbX}px)`;
+}
 
 function renderTabs() {
     tabsContainer.innerHTML = '';
@@ -1036,6 +1772,8 @@ function renderTabs() {
         el.onclick = () => switchTab(tab.id);
         tabsContainer.appendChild(el);
     });
+    // Keep overlay scrollbar in sync (after layout)
+    requestAnimationFrame(syncTabsScrollbar);
 }
 
 function addTab(name = null, content = null) {
@@ -1043,12 +1781,16 @@ function addTab(name = null, content = null) {
     const id = 'tab-' + tabCounter;
     tabs.push({ id, name: name || 'Untitled Tab ' + tabCounter, content: content ?? initialContent });
     switchTab(id);
+    queueSaveTabs();
 }
 function switchTab(id) {
     activeTabId = id;
     const tab = tabs.find(t => t.id === id);
     if (tab && monacoEditor) { monacoEditor.setValue(tab.content || ''); monacoEditor.focus(); }
     renderTabs();
+    requestAnimationFrame(syncTabsScrollbar);
+    updateOutlineSidebarDebounced();
+    queueSaveTabs();
 }
 function removeTab(id) {
     const idx = tabs.findIndex(t => t.id === id);
@@ -1057,12 +1799,14 @@ function removeTab(id) {
     if (tabs.length === 1) tabCounter = 1;
     if (activeTabId === id) switchTab(tabs[Math.max(0, idx - 1)].id);
     else renderTabs();
+    requestAnimationFrame(syncTabsScrollbar);
+    queueSaveTabs();
 }
 function startRename(tab, span) {
     span.style.display = 'none';
     const inp = document.createElement('input'); inp.type='text'; inp.className='tab-name-input'; inp.value=tab.name;
     span.parentNode.insertBefore(inp, span); inp.focus(); inp.select();
-    const done = () => { tab.name = inp.value.trim() || tab.name; inp.remove(); span.textContent=tab.name; span.style.display=''; };
+    const done = () => { tab.name = inp.value.trim() || tab.name; inp.remove(); span.textContent=tab.name; span.style.display=''; queueSaveTabs(); };
     inp.addEventListener('blur', done);
     inp.addEventListener('keydown', e => { if(e.key==='Enter') done(); if(e.key==='Escape'){inp.remove();span.style.display='';} });
 }
@@ -1079,13 +1823,348 @@ function showSettings() { editorView.style.display='none'; settingsView.style.di
 function showTheme()    { editorView.style.display='none'; settingsView.style.display='none'; themeView.style.display='block'; tabBar.style.display='none'; actionBar.style.display='none'; appBody.className='theme-active'; }
 function setNav(active) { [navEditor,navSettings,navTheme].forEach(n=>n.classList.remove('active-section-indicator')); active.classList.add('active-section-indicator'); }
 
-function applyTheme(name) {
-    themeName = name === 'light' ? 'light' : 'dark';
-    appContainer.classList.toggle('light-theme', name==='light');
-    document.querySelectorAll('.theme-opt').forEach(e=>e.classList.remove('active-theme'));
-    if (name==='light') { $('theme-light')?.classList.add('active-theme'); if(monacoEditor) monaco.editor.setTheme('vs'); }
-    else                { $('theme-dark')?.classList.add('active-theme');  if(monacoEditor) monaco.editor.setTheme('vs-dark'); }
+function setThemeBase(base) {
+    const isLight = base === 'light';
+    document.documentElement.classList.toggle('light-theme', isLight);
+    document.body.classList.toggle('light-theme', isLight);
+    appContainer?.classList.toggle('light-theme', isLight);
+    if (monacoEditor) monaco.editor.setTheme(isLight ? 'vs' : 'vs-dark');
+}
+
+function clearAppliedCustomThemeVars() {
+    if (!appliedCustomVarNames?.length) return;
+    appliedCustomVarNames.forEach(k => document.documentElement.style.removeProperty(k));
+    appliedCustomVarNames = [];
+}
+
+function applyThemeVisualOnly(name) {
+    // Apply theme visuals only (used for hover preview). No persistence, no renderThemeOptions, no saveSettings.
+    if (typeof name === 'string' && name.startsWith('custom:')) {
+        const id = name.slice('custom:'.length);
+        const theme = customThemes.find(t => t.id === id);
+        if (!theme) {
+            clearAppliedCustomThemeVars();
+            setThemeBase('dark');
+            return;
+        }
+
+        setThemeBase(theme.base === 'light' ? 'light' : 'dark');
+        clearAppliedCustomThemeVars();
+
+        const vars = theme.vars && typeof theme.vars === 'object' ? theme.vars : {};
+        for (const [k, v] of Object.entries(vars)) {
+            if (!k.startsWith('--')) continue;
+            document.documentElement.style.setProperty(k, String(v));
+            appliedCustomVarNames.push(k);
+        }
+
+        // Monaco theme (optional)
+        if (theme.monacoTheme && window.monaco?.editor?.defineTheme && monacoEditor) {
+            try {
+                monaco.editor.defineTheme('potassium-custom', {
+                    base: theme.monacoTheme.base === 'vs' ? 'vs' : 'vs-dark',
+                    inherit: theme.monacoTheme.inherit !== false,
+                    rules: Array.isArray(theme.monacoTheme.rules) ? theme.monacoTheme.rules : [],
+                    colors: (theme.monacoTheme.colors && typeof theme.monacoTheme.colors === 'object') ? theme.monacoTheme.colors : {},
+                });
+                monaco.editor.setTheme('potassium-custom');
+            } catch (_) {}
+        }
+        return;
+    }
+
+    clearAppliedCustomThemeVars();
+    setThemeBase(name === 'light' ? 'light' : 'dark');
+}
+
+function applyCustomTheme(id) {
+    const theme = customThemes.find(t => t.id === id);
+    if (!theme) {
+        applyTheme('dark');
+        return;
+    }
+
+    const base = theme.base === 'light' ? 'light' : 'dark';
+    setThemeBase(base);
+
+    clearAppliedCustomThemeVars();
+    const vars = theme.vars && typeof theme.vars === 'object' ? theme.vars : {};
+    for (const [k, v] of Object.entries(vars)) {
+        if (!k.startsWith('--')) continue;
+        document.documentElement.style.setProperty(k, String(v));
+        appliedCustomVarNames.push(k);
+    }
+
+    // Monaco theme (optional)
+    if (theme.monacoTheme && window.monaco?.editor?.defineTheme && monacoEditor) {
+        try {
+            monaco.editor.defineTheme('potassium-custom', {
+                base: theme.monacoTheme.base === 'vs' ? 'vs' : 'vs-dark',
+                inherit: theme.monacoTheme.inherit !== false,
+                rules: Array.isArray(theme.monacoTheme.rules) ? theme.monacoTheme.rules : [],
+                colors: (theme.monacoTheme.colors && typeof theme.monacoTheme.colors === 'object') ? theme.monacoTheme.colors : {},
+            });
+            monaco.editor.setTheme('potassium-custom');
+        } catch (_) {}
+    }
+
+    themeName = 'custom:' + id;
+    renderThemeOptions();
     if (!settingsApplying) saveSettings();
+}
+
+function applyTheme(name) {
+    if (typeof name === 'string' && name.startsWith('custom:')) {
+        const id = name.slice('custom:'.length);
+        applyCustomTheme(id);
+        return;
+    }
+
+    themeName = name === 'light' ? 'light' : 'dark';
+    clearAppliedCustomThemeVars();
+    setThemeBase(themeName);
+    renderThemeOptions();
+    if (!settingsApplying) saveSettings();
+}
+
+function renderThemeOptions() {
+    const host = $('theme-options');
+    if (!host) return;
+
+    host.innerHTML = '';
+    let previewOriginalTheme = null;
+
+    const addOpt = ({ id, label, base, removable, onApply, onRemove }) => {
+        const opt = document.createElement('div');
+        opt.className = 'theme-opt';
+
+        const main = document.createElement('div');
+        main.className = 'theme-opt-main';
+
+        const prev = document.createElement('div');
+        prev.className = 'theme-preview ' + (base === 'light' ? 'tp-light' : 'tp-dark');
+        prev.innerHTML = '<div class="ph"></div><div class="pb"></div>';
+
+        const lbl = document.createElement('span');
+        lbl.className = 'theme-lbl';
+        lbl.textContent = label;
+
+        main.append(prev, lbl);
+
+        const right = document.createElement('div');
+        right.className = 'theme-opt-right';
+
+        if (removable) {
+            const x = document.createElement('button');
+            x.className = 'theme-remove-btn';
+            x.type = 'button';
+            x.textContent = '\u00D7';
+            x.title = 'Remove theme';
+            x.addEventListener('click', (e) => { e.stopPropagation(); onRemove?.(); });
+            right.appendChild(x);
+        }
+
+        opt.append(main, right);
+        opt.addEventListener('click', () => onApply?.());
+        opt.addEventListener('mouseenter', () => {
+            if (previewOriginalTheme == null) previewOriginalTheme = themeName;
+            applyThemeVisualOnly(id);
+        });
+        opt.addEventListener('mouseleave', () => {
+            if (previewOriginalTheme == null) return;
+            applyThemeVisualOnly(previewOriginalTheme);
+            previewOriginalTheme = null;
+        });
+
+        const active =
+            (id === 'dark'  && themeName === 'dark') ||
+            (id === 'light' && themeName === 'light') ||
+            (id.startsWith('custom:') && themeName === id);
+        if (active) opt.classList.add('active-theme');
+
+        host.appendChild(opt);
+    };
+
+    addOpt({ id: 'dark', label: 'Default Dark', base: 'dark', removable: false, onApply: () => applyTheme('dark') });
+    addOpt({ id: 'light', label: 'Light Theme', base: 'light', removable: false, onApply: () => applyTheme('light') });
+
+    if (customThemeEnabled) {
+        customThemes.forEach(t => {
+            const id = 'custom:' + t.id;
+            addOpt({
+                id,
+                label: t.name,
+                base: t.base === 'light' ? 'light' : 'dark',
+                removable: true,
+                onApply: () => applyTheme(id),
+                onRemove: () => {
+                    customThemes = customThemes.filter(x => x.id !== t.id);
+                    saveCustomThemes();
+                    if (themeName === id) applyTheme('dark');
+                    renderThemeOptions();
+                },
+            });
+        });
+    } else {
+        if (typeof themeName === 'string' && themeName.startsWith('custom:')) applyTheme('dark');
+    }
+}
+
+function themeTemplateText() {
+    return `{
+  "name": "My Custom Theme",
+  "base": "dark",
+  "_instructions": [
+    "Keep \\\"name\\\" unique so you can identify it in Appearance.",
+    "\\\"base\\\" controls the Light/Dark base styles: \\\"light\\\" or \\\"dark\\\".",
+    "\\\"vars\\\" overrides CSS variables used across the UI. Only include what you want to change.",
+    "Then go to Settings > Window > Custom Theme and click \\\"Add\\\" while this tab is active."
+  ],
+  "monacoTheme": {
+    "_note": "Optional. If present, Monaco will use this theme (defineTheme + setTheme).",
+    "base": "vs-dark",
+    "inherit": true,
+    "rules": [],
+    "colors": {
+      "editor.background": "#1a1a1a"
+    }
+  },
+  "vars": {
+    "--bg-primary": "#181818",
+    "--bg-secondary": "#1a1a1a",
+    "--bg-tertiary": "#2a2a2a",
+    "--bg-accent": "#222222",
+    "--text-primary": "#d0d0d0",
+    "--text-secondary": "#888888",
+    "--text-tertiary": "#606060",
+    "--accent": "#a0a0a0",
+    "--accent-dim": "#555555",
+    "--red": "#b85555",
+    "--border-primary": "#282828",
+    "--border-secondary": "#1f1f1f",
+    "--border-accent": "#303030",
+    "--toggle-bg": "#3a3a3c",
+    "--toggle-border": "#505050",
+    "--toggle-knob-off": "#888888",
+    "--toggle-knob-on": "#ffffff",
+    "--dot-off": "#444444",
+    "--dot-muted": "#555555",
+    "--badge-bg": "rgba(255,255,255,.04)",
+    "--conn-bg": "rgba(160,160,160,.06)",
+    "--overlay-bg": "rgba(0,0,0,.6)",
+    "--shadow-panel": "0 10px 28px rgba(0,0,0,.55)",
+    "--shadow-panel-strong": "0 10px 30px rgba(0,0,0,.6)",
+    "--shadow-modal": "0 14px 42px rgba(0,0,0,.6)",
+    "--theme-glow": "0 0 10px rgba(160,160,160,.12)"
+  }
+}`;
+}
+
+function parseThemeJson(text) {
+    let parsed;
+    try {
+        parsed = JSON.parse(String(text || ''));
+    } catch (e) {
+        throw new Error('Theme JSON must be valid JSON (no comments or trailing commas). ' + (e?.message || e));
+    }
+    if (!parsed || typeof parsed !== 'object') throw new Error('Theme JSON must be an object.');
+
+    const name = String(parsed.name || '').trim();
+    if (!name) throw new Error('Theme must have a non-empty "name".');
+
+    const base = parsed.base === 'light' ? 'light' : 'dark';
+    const vars = parsed.vars;
+    if (!vars || typeof vars !== 'object' || Array.isArray(vars)) throw new Error('Theme must have a "vars" object.');
+
+    const cleaned = {};
+    for (const [k, v] of Object.entries(vars)) {
+        const key = String(k || '').trim();
+        if (!key.startsWith('--')) continue;
+        const val = String(v ?? '').trim();
+        if (!val) continue;
+        cleaned[key] = val;
+    }
+    if (!Object.keys(cleaned).length) throw new Error('Theme "vars" is empty (no valid CSS variables).');
+
+    const monacoTheme = parsed.monacoTheme;
+    if (monacoTheme != null) {
+        if (!monacoTheme || typeof monacoTheme !== 'object' || Array.isArray(monacoTheme)) throw new Error('"monacoTheme" must be an object.');
+        const baseM = monacoTheme.base === 'vs' ? 'vs' : 'vs-dark';
+        const inherit = monacoTheme.inherit !== false;
+        const rules = Array.isArray(monacoTheme.rules) ? monacoTheme.rules : [];
+        const colors = (monacoTheme.colors && typeof monacoTheme.colors === 'object' && !Array.isArray(monacoTheme.colors)) ? monacoTheme.colors : {};
+        return { name, base, vars: cleaned, monacoTheme: { base: baseM, inherit, rules, colors } };
+    }
+
+    return { name, base, vars: cleaned, monacoTheme: null };
+}
+
+async function importThemeFromFile() {
+    // Tauri
+    if (window.__TAURI__) {
+        try {
+            const r = await tauriInvoke('open_file_dialog');
+            if (r?.content) return String(r.content);
+        } catch(_) {}
+    }
+
+    // Browser fallback
+    return await new Promise((resolve, reject) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,application/json,text/plain';
+        input.onchange = async () => {
+            try {
+                const file = input.files?.[0];
+                if (!file) return reject(new Error('No file selected.'));
+                const text = await file.text();
+                resolve(text);
+            } catch (e) { reject(e); }
+        };
+        input.click();
+    });
+}
+
+function normalizeThemeName(name) {
+    return String(name || '').trim().toLowerCase();
+}
+
+function isReservedThemeName(name) {
+    const n = normalizeThemeName(name);
+    return n === 'default dark' || n === 'light theme' || n === 'dark' || n === 'light';
+}
+
+async function upsertCustomTheme(parsedTheme) {
+    if (isReservedThemeName(parsedTheme.name)) {
+        throw new Error('You can\u2019t replace built-in themes (Default Dark / Light Theme). Choose a different "name".');
+    }
+
+    const n = normalizeThemeName(parsedTheme.name);
+    const idx = customThemes.findIndex(t => normalizeThemeName(t.name) === n);
+
+    if (idx >= 0) {
+        if (!autoReplaceThemeOnConflict) {
+            const ok = await confirmModal(`A theme named "${customThemes[idx].name}" already exists. Replace it?`, 'Replace', 'Cancel');
+            if (!ok) return null;
+        }
+        const existing = customThemes[idx];
+        customThemes[idx] = {
+            ...existing,
+            name: parsedTheme.name,
+            base: parsedTheme.base,
+            vars: parsedTheme.vars,
+            monacoTheme: parsedTheme.monacoTheme ?? null,
+        };
+        saveCustomThemes();
+        renderThemeOptions();
+        return existing.id;
+    }
+
+    const id = 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    customThemes.push({ id, name: parsedTheme.name, base: parsedTheme.base, vars: parsedTheme.vars, monacoTheme: parsedTheme.monacoTheme ?? null });
+    saveCustomThemes();
+    renderThemeOptions();
+    return id;
 }
 
 // ══════════════════════════════
@@ -1102,11 +2181,13 @@ function init() {
     navEditor    = $('nav-editor');
     navSettings  = $('nav-settings');
     navTheme     = $('nav-theme');
+    rightSidebarEl = $('right-sidebar');
 
     navEditor.classList.add('active-section-indicator');
     showEditor();
 
     // Apply persisted settings (theme, toggles, dropdowns, etc.)
+    customThemes = loadCustomThemes();
     applySettings(loadSettings());
 
     // Nav
@@ -1115,12 +2196,91 @@ function init() {
     navTheme.onclick    = () => { showTheme();    setNav(navTheme); };
 
     // Theme
-    $('theme-dark').onclick  = () => applyTheme('dark');
-    $('theme-light').onclick = () => applyTheme('light');
+    renderThemeOptions();
+
+    const openTabAndGoEditor = (name, content) => {
+        addTab(name, content);
+        showEditor();
+        setNav(navEditor);
+    };
 
     // Editor toggles
     $('tog-minimap').addEventListener('change', e => { monacoEditor?.updateOptions({ minimap: { enabled: e.target.checked } }); if(!settingsApplying) saveSettings(); });
     $('tog-linenums').addEventListener('change', e => { monacoEditor?.updateOptions({ lineNumbers: e.target.checked ? 'on' : 'off' }); if(!settingsApplying) saveSettings(); });
+    $('tog-smooth-typing').addEventListener('change', e => {
+        smoothTyping = !!e.target.checked;
+        monacoEditor?.updateOptions({
+            smoothScrolling: smoothTyping,
+            cursorBlinking: smoothTyping ? 'smooth' : 'blink',
+            cursorSmoothCaretAnimation: smoothTyping ? 'on' : 'off',
+        });
+        if(!settingsApplying) saveSettings();
+    });
+    $('tog-outline-sidebar').addEventListener('change', e => {
+        outlineSidebar = !!e.target.checked;
+        updateOutlineSidebar();
+        if(!settingsApplying) saveSettings();
+    });
+    $('tog-autosave-tabs').addEventListener('change', e => {
+        autosaveTabs = !!e.target.checked;
+        if (!autosaveTabs) clearSavedTabs();
+        else saveTabsNow();
+        if(!settingsApplying) saveSettings();
+    });
+    $('tog-custom-theme').addEventListener('change', e => {
+        customThemeEnabled = !!e.target.checked;
+        const box = $('custom-theme-settings');
+        if (box) box.style.display = customThemeEnabled ? 'block' : 'none';
+        if (!customThemeEnabled && typeof themeName === 'string' && themeName.startsWith('custom:')) applyTheme('dark');
+        renderThemeOptions();
+        if(!settingsApplying) saveSettings();
+    });
+    $('tog-theme-auto-replace').addEventListener('change', e => {
+        autoReplaceThemeOnConflict = !!e.target.checked;
+        if(!settingsApplying) saveSettings();
+    });
+
+    $('btn-theme-template').addEventListener('click', () => {
+        openTabAndGoEditor('theme-template.json', themeTemplateText());
+    });
+    $('btn-theme-import').addEventListener('click', async () => {
+        try {
+            const text = await importThemeFromFile();
+            const t = parseThemeJson(text);
+            const id = await upsertCustomTheme(t);
+            if (!id) return;
+            customThemeEnabled = true;
+            $('tog-custom-theme').checked = true;
+            $('custom-theme-settings').style.display = 'block';
+            renderThemeOptions();
+            applyTheme('custom:' + id);
+            if(!settingsApplying) saveSettings();
+        } catch (e) {
+            modal('Theme import error: ' + (e?.message || e));
+        }
+    });
+    $('btn-theme-add').addEventListener('click', async () => {
+        try {
+            if (!monacoEditor) throw new Error('Editor not ready.');
+            const text = monacoEditor.getValue();
+            const t = parseThemeJson(text);
+            const id = await upsertCustomTheme(t);
+            if (!id) return;
+            customThemeEnabled = true;
+            $('tog-custom-theme').checked = true;
+            $('custom-theme-settings').style.display = 'block';
+            renderThemeOptions();
+            applyTheme('custom:' + id);
+            if(!settingsApplying) saveSettings();
+        } catch (e) {
+            modal('Add theme error: ' + (e?.message || e));
+        }
+    });
+
+    $('btn-open-functions')?.addEventListener('click', async () => {
+        const text = await fetchFunctionsTxt();
+        openTabAndGoEditor('functions.txt', text || '');
+    });
 
     // Always on top
     $('tog-aot').addEventListener('change', async e => {
@@ -1173,6 +2333,7 @@ function init() {
     $('wcbtn-min').onclick = () => tauriInvoke('minimize_window').catch(() => window.__TAURI__?.window?.getCurrent()?.minimize());
     $('wcbtn-max').onclick = () => tauriInvoke('toggle_maximize').catch(() => window.__TAURI__?.window?.getCurrent()?.toggleMaximize());
     $('wcbtn-close').onclick = async () => {
+        saveTabsNow();
         stopAutoAttach(); await detach();
         tauriInvoke('close_window').catch(() => window.__TAURI__?.window?.getCurrent()?.close().catch(() => window.close()));
     };
@@ -1251,13 +2412,21 @@ function init() {
     };
     $('add-tab-btn').onclick = () => addTab();
 
-    // Search input — triggers Monaco find widget
+    // Search input:
+    // - If Outline View is enabled, it filters the outline sidebar.
+    // - Otherwise, it triggers Monaco's find widget.
     $('tab-bar-search-input').addEventListener('input', e => {
+        const q = e.target.value || '';
+
+        if (outlineSidebar) {
+            outlineSearchQuery = q;
+            updateOutlineSidebarDebounced();
+            return;
+        }
+
         if (!monacoEditor) return;
-        const q = e.target.value;
         if (q) {
             monacoEditor.trigger('search', 'actions.find', null);
-            monacoEditor.getModel()?.findMatches(q, false, false, false, null, false);
             // Use Monaco's find controller
             const fc = monacoEditor.getContribution('editor.contrib.findController');
             if (fc) { fc.start({ searchString: q, replaceString: '', isRegex: false, matchCase: false, matchWholeWord: false }); }
@@ -1267,11 +2436,67 @@ function init() {
         }
     });
     $('tab-bar-search-input').addEventListener('keydown', e => {
-        if (e.key === 'Escape') { e.target.value = ''; monacoEditor?.focus(); }
+        if (e.key === 'Escape') {
+            e.target.value = '';
+            if (outlineSidebar) { outlineSearchQuery = ''; updateOutlineSidebarDebounced(); }
+            else monacoEditor?.focus();
+        }
         if (e.key === 'Enter') {
+            if (outlineSidebar) return;
             const fc = monacoEditor?.getContribution('editor.contrib.findController');
             if (fc) e.shiftKey ? fc.moveToPrevMatch() : fc.moveToNextMatch();
         }
+    });
+
+    // Tabs overflow scrollbar (overlay)
+    tabsContainer?.addEventListener('scroll', () => requestAnimationFrame(syncTabsScrollbar));
+    window.addEventListener('resize', () => requestAnimationFrame(syncTabsScrollbar));
+
+    // Thumb dragging
+    tabsScrollbarThumb?.addEventListener('mousedown', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        tabsScrollbarDragging = true;
+        tabsScrollbarDragStartX = e.clientX;
+        tabsScrollbarDragStartScrollLeft = tabsContainer.scrollLeft;
+        document.body.style.userSelect = 'none';
+    });
+    document.addEventListener('mousemove', e => {
+        if (!tabsScrollbarDragging) return;
+        const scrollW = tabsContainer.scrollWidth;
+        const clientW = tabsContainer.clientWidth;
+        const maxScroll = Math.max(0, scrollW - clientW);
+        const trackW = tabsScrollbar.clientWidth;
+        const thumbW = tabsScrollbarThumb.getBoundingClientRect().width;
+        const maxThumbX = Math.max(0, trackW - thumbW);
+        if (maxScroll === 0 || maxThumbX === 0) return;
+        const dx = e.clientX - tabsScrollbarDragStartX;
+        const scrollDx = (dx / maxThumbX) * maxScroll;
+        tabsContainer.scrollLeft = tabsScrollbarDragStartScrollLeft + scrollDx;
+        syncTabsScrollbar();
+    });
+    document.addEventListener('mouseup', () => {
+        if (!tabsScrollbarDragging) return;
+        tabsScrollbarDragging = false;
+        document.body.style.userSelect = '';
+    });
+
+    // Click track to jump
+    tabsScrollbar?.addEventListener('mousedown', e => {
+        if (e.target === tabsScrollbarThumb) return;
+        const rect = tabsScrollbar.getBoundingClientRect();
+        const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+        const scrollW = tabsContainer.scrollWidth;
+        const clientW = tabsContainer.clientWidth;
+        const maxScroll = Math.max(0, scrollW - clientW);
+        const trackW = rect.width;
+        const thumbW = tabsScrollbarThumb.getBoundingClientRect().width;
+        const maxThumbX = Math.max(0, trackW - thumbW);
+        if (maxScroll === 0 || maxThumbX === 0) return;
+        const thumbTargetX = Math.max(0, Math.min(maxThumbX, x - thumbW / 2));
+        const ratio = thumbTargetX / maxThumbX;
+        tabsContainer.scrollLeft = ratio * maxScroll;
+        syncTabsScrollbar();
     });
 
     renderMainDdPorts();
@@ -1286,22 +2511,28 @@ require(['vs/editor/editor.main'], () => {
         value: '', language: 'lua', theme: 'vs-dark',
         automaticLayout: true, fontSize: 12,
         minimap: { enabled: false }, lineNumbers: 'on',
+        smoothScrolling: true,
+        cursorBlinking: 'smooth',
+        cursorSmoothCaretAnimation: 'on',
         scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, useShadows: false, vertical: 'auto', horizontal: 'auto' },
         lineNumbersMinChars: 3, padding: { top: 8 }
     });
 
     init();
-    addTab(null, initialContent);
+    restoreTabsOrDefault();
 
     monacoEditor.onDidChangeModelContent(() => {
         const tab = tabs.find(t => t.id === activeTabId);
         if (tab) tab.content = monacoEditor.getValue();
+        updateOutlineSidebarDebounced();
+        queueSaveTabs();
     });
 
     // Sync toggle states with actual editor options
     $('tog-minimap').checked = monacoEditor.getOption(monaco.editor.EditorOption.minimap).enabled;
     const lnOpt = monacoEditor.getOption(monaco.editor.EditorOption.lineNumbers);
     $('tog-linenums').checked = lnOpt?.renderType !== 0;
+    $('tog-smooth-typing').checked = smoothTyping;
 });
 </script>
 </body>
